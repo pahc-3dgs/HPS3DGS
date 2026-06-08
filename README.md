@@ -102,23 +102,10 @@ python scripts/run_pahc_pipeline.py \
   --skip-train --skip-mask --skip-feature
 ```
 
-The final stage follows the complete `geo32.py` schedule: semantic-spatial
+The final stage follows the complete schedule: semantic-spatial
 clustering, physics-aware matching, FPFH/RANSAC initialization, pose rejection,
 seven M-step/E-step refinement cycles, target removal, basis quantization,
 compact decoding, and unquantized and quantized rendering evaluation.
-
-`run_pahc_pipeline.py` is the public end-to-end entry point. `compress.py`,
-`decode.py`, and `evaluate.py` remain as focused tools for debugging and
-inspection.
-
-The appearance configuration controls the quantized attributes and codebook
-sizes. As in `geo32.py`, PAHC applies one-shot KMeans quantization to the
-retained basis under `torch.no_grad()`. Its reported quantized metric uses the
-quantized basis together with the unquantized instance payloads created during
-geometry refinement.
-
-See `docs/TEST_ZXA1_12.md` for a concrete end-to-end test using the bundled
-`/disk3/ydz/data/zxa1-12` dataset.
 
 ## Compact Representation
 
@@ -132,5 +119,5 @@ See `docs/TEST_ZXA1_12.md` for a concrete end-to-end test using the bundled
 ## Acknowledgements
 
 This implementation builds on common 3DGS research infrastructure. It uses
-SegAnyGaussians as a third-party backend and reorganizes the KMeans appearance
-quantization ideas from CompGS into the PAHC-3DGS appearance layer.
+[SegAnyGaussians](https://github.com/Jumpat/SegAnyGAussians) as a third-party backend and reorganizes the KMeans appearance
+quantization ideas from [CompGS](https://github.com/UCDvision/compact3d) into the PAHC-3DGS appearance layer.
