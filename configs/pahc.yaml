@@ -1,0 +1,50 @@
+feature_dim: 32
+feature_iteration: 10000
+
+clustering:
+  hdbscan_min_cluster_size: 500
+  hdbscan_epsilon: 0.01
+  core_set_min_samples: 200000
+  sample_keep_probability: 0.99
+  target_block_size: 100000
+  min_block_size: 100
+  dbscan_eps: 0.25
+  dbscan_min_samples: 10
+
+matching:
+  min_cluster_size: 1000
+  wg: 0.4
+  ws: 0.6
+  tau_p: 5.0
+  extent_ratio_min: 0.33
+  extent_ratio_max: 3.0
+
+refinement:
+  tau_r: 0.005
+  initial_pose_iters: 1000
+  refit_pose_iters: 150
+  refine_cycles: 7
+  distribution_iters: 5000
+  final_distribution_iters: 10000
+  pose_lr_t: 0.005
+  pose_lr_q: 0.001
+  refit_lr_t: 0.0002
+  refit_lr_q: 0.0001
+
+appearance:
+  num_iters: 10
+  quantized_attributes:
+    - dc
+    - sh
+    - scale
+    - rotation
+    - opacity
+  codebook_size:
+    dc: 4096
+    sh: 4096
+    scale: 4096
+    rotation: 4096
+    opacity: 4096
+codec:
+  format: pt
+  save_metadata: true

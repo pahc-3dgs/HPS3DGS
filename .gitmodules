@@ -1,0 +1,3 @@
+[submodule "third_party/SegAnyGAussians"]
+	path = third_party/SegAnyGAussians
+	url = https://github.com/Jumpat/SegAnyGAussians.git

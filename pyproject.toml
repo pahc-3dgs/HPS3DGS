@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pahc3dgs"
+version = "0.1.0"
+description = "Physics-Aware Hierarchical 3DGS Compression"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [{name = "PAHC-3DGS Authors"}]
+dependencies = [
+  "torch",
+  "numpy",
+  "scipy",
+  "scikit-learn",
+  "PyYAML",
+]
+
+[tool.setuptools.packages.find]
+include = ["pahc_3dgs*"]
