@@ -40,16 +40,12 @@ semantic feature training, scene loading, and rendering.
 git submodule update --init --recursive third_party/SegAnyGaussians
 ```
 
-Or use an existing checkout:
-
-```bash
-export PAHC3DGS_SAGA_ROOT=/path/to/SegAnyGAussians
-```
-
-The PAHC-specific code lives in `pahc_3dgs/`; third-party code is kept behind
-`pahc_3dgs/backend.py`.
-
 ## Installation
+
+PAHC-3DGS is installed incrementally on top of an existing
+SegAnyGaussians (SAGA) environment. First install SAGA, PyTorch, torchvision,
+and its CUDA rasterization extensions by following the upstream SAGA
+instructions. Then install the PAHC-specific dependencies:
 
 ```bash
 conda activate sacgs
@@ -57,8 +53,11 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-Install SegAnyGaussians and its CUDA rasterization dependencies following the
-upstream instructions when running full 3DGS training/rendering.
+The `requirements.txt` file intentionally does not install or replace PyTorch,
+torchvision, or the SAGA CUDA extensions. This avoids changing the GPU stack in
+an environment where SAGA already runs correctly. The current setup has been
+verified with Python 3.8.20, PyTorch 2.4.1+cu121, and torchvision 0.19.1+cu121
+in the `sacgs` environment.
 
 ## Tests
 
