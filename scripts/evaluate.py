@@ -6,8 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from pahc_3dgs.codec import load_compact_scene
-from pahc_3dgs.metrics import compression_report
+from src.codec import load_compact_scene
+from src.metrics import compression_report
 
 
 def main():

@@ -19,7 +19,7 @@ pahc3dgs/
 │   ├── compress.py
 │   ├── decode.py
 │   └── evaluate.py
-├── pahc_3dgs/
+├── src/
 │   ├── backend.py
 │   ├── data.py
 │   ├── compression.py
@@ -108,7 +108,7 @@ compact decoding, and unquantized and quantized rendering evaluation.
 
 ## Compact Representation
 
-`pahc_3dgs.codec.CompactScene` stores:
+`src.codec.CompactScene` stores:
 
 - `templates`: Gaussian tensors retained as meta templates.
 - `instances`: template id, instance id, rotation, translation, and optional scale.

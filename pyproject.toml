@@ -19,4 +19,4 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["pahc_3dgs*"]
+include = ["src*"]

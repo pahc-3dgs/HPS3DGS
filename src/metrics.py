@@ -1,5 +1,7 @@
 """Evaluation metrics and compression statistics."""
 
+from __future__ import annotations
+
 from typing import Any
 
 from .codec import estimate_payload_bytes

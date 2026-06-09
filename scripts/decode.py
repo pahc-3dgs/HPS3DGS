@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from pahc_3dgs.codec import decode_compact_scene, load_compact_scene
+from src.codec import decode_compact_scene, load_compact_scene
 
 
 def main():

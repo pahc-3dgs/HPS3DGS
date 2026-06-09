@@ -11,21 +11,21 @@ import torch.nn as nn
 import yaml
 from tqdm import tqdm
 
-from pahc_3dgs.backend import load_trained_scene
-from pahc_3dgs.codec import (
+from src.backend import load_trained_scene
+from src.codec import (
     CompactScene,
     TemplateInstance,
     decode_compact_basis,
     save_compact_scene,
 )
-from pahc_3dgs.compression import (
+from src.compression import (
     ClusterConfig,
     MatchingConfig,
     PAHCConfig,
     RefinementConfig,
     run_geo32_compression,
 )
-from pahc_3dgs.quantization import quantize_appearance_attributes
+from src.quantization import quantize_appearance_attributes
 
 
 def load_config(path):
