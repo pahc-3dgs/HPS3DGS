@@ -23,6 +23,11 @@ import torch
 from .owners import build_owner_index, save_owners
 
 
+#: Band-0 SH normalisation constant used by every 3DGS codebase
+#: (``SH2RGB(sh) = C0 * sh + 0.5``).
+SH_C0 = 0.28209479177387814
+
+
 def basis_to_init_points(
     xyz: torch.Tensor,
     features_dc: Optional[torch.Tensor] = None,
@@ -32,9 +37,10 @@ def basis_to_init_points(
 
     points = xyz.detach().cpu().to(torch.float32).numpy()
     if features_dc is not None:
-        # SH DC term -> RGB through the standard C0 band.
+        # SH DC term -> RGB through the standard band-0 coefficient:
+        # rgb = C0 * sh_dc + 0.5, matching SH2RGB in 3DGS/HAC++/SAGA.
         dc = features_dc.detach().cpu().to(torch.float32).reshape(points.shape[0], 3, -1)[..., 0]
-        colors = ((dc + 0.5).clamp(0.0, 1.0) * 255.0).to(torch.uint8).numpy()
+        colors = ((SH_C0 * dc + 0.5).clamp(0.0, 1.0) * 255.0).to(torch.uint8).numpy()
     else:
         colors = np.full_like(points[:, :3], 128, dtype=np.uint8)
     if normals is None:
@@ -42,6 +48,36 @@ def basis_to_init_points(
     else:
         normals = normals.detach().cpu().to(torch.float32).numpy()
     return points, colors, normals
+
+
+def save_init_ply(path, points, colors, normals):
+    """Write the init cloud as a PLY HAC++ ``Scene(ply_path=...)`` can read."""
+
+    from plyfile import PlyData, PlyElement
+
+    vertices = np.empty(
+        points.shape[0],
+        dtype=[
+            ("x", "f4"),
+            ("y", "f4"),
+            ("z", "f4"),
+            ("nx", "f4"),
+            ("ny", "f4"),
+            ("nz", "f4"),
+            ("red", "u1"),
+            ("green", "u1"),
+            ("blue", "u1"),
+        ],
+    )
+    vertices["x"], vertices["y"], vertices["z"] = points[:, 0], points[:, 1], points[:, 2]
+    vertices["nx"], vertices["ny"], vertices["nz"] = normals[:, 0], normals[:, 1], normals[:, 2]
+    vertices["red"], vertices["green"], vertices["blue"] = (
+        colors[:, 0],
+        colors[:, 1],
+        colors[:, 2],
+    )
+    element = PlyElement.describe(vertices, "vertex")
+    PlyData([element], text=False).write(str(path))
 
 
 def export_hacpp_init(
@@ -82,6 +118,7 @@ def export_hacpp_init(
         colors=colors,
         normals=normals_out,
     )
+    save_init_ply(out_dir / "hacpp_init.ply", points, colors, normals_out)
     config = {
         "num_points": int(points.shape[0]),
         "num_owners": int(len(template_rows or {})),

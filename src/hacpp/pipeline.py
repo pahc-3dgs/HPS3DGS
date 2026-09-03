@@ -22,7 +22,7 @@ from .owners import build_owner_index, owner_blocks_are_contiguous, save_owners
 
 
 def save_instances(path, scene: CompactScene):
-    """Serialise instance poses (and residuals) to a single npz stream."""
+    """Serialise instance poses, row maps and residuals to a single npz stream."""
 
     n = len(scene.instances)
     quat = torch.zeros((n, 4))
@@ -34,6 +34,8 @@ def save_instances(path, scene: CompactScene):
     residual_keys: list[str] = []
     residual_lengths: list[int] = []
     residual_values: list[torch.Tensor] = []
+    row_map_offsets = np.zeros((n + 1,), dtype=np.int64)
+    row_map_values: list[torch.Tensor] = []
     for row, instance in enumerate(scene.instances):
         rotation = instance.rotation.detach().cpu().reshape(-1)
         if rotation.numel() == 9:
@@ -48,6 +50,11 @@ def save_instances(path, scene: CompactScene):
             center[row] = instance.center.detach().cpu().reshape(3)
         template_ids[row] = int(instance.template_id)
         instance_ids[row] = int(instance.instance_id)
+        if instance.row_map is not None:
+            row_map_values.append(instance.row_map.detach().cpu().reshape(-1).to(torch.int32))
+        row_map_offsets[row + 1] = row_map_offsets[row] + (
+            0 if instance.row_map is None else int(instance.row_map.numel())
+        )
         for key, value in sorted(instance.residuals.items()):
             residual_keys.append(key)
             residual_lengths.append(int(value.numel()))
@@ -60,11 +67,15 @@ def save_instances(path, scene: CompactScene):
         "scale": scale.numpy(),
         "center": center.numpy(),
         "sh_mode": np.asarray(scene.sh_mode),
+        "residual_attributes": np.asarray(scene.residual_attributes),
+        "row_map_offsets": row_map_offsets,
         "residual_keys": np.asarray(residual_keys),
         "residual_lengths": np.asarray(residual_lengths, dtype=np.int64),
     }
     if residual_values:
         payload["residual_values"] = torch.cat(residual_values).numpy()
+    if row_map_values:
+        payload["row_map_values"] = torch.cat(row_map_values).numpy()
     np.savez_compressed(path, **payload)
     return payload
 
@@ -75,6 +86,12 @@ def load_instances(path) -> list[dict[str, Any]]:
     residual_keys = [str(item) for item in data["residual_keys"].tolist()]
     residual_lengths = data["residual_lengths"].tolist()
     values = data["residual_values"] if "residual_values" in data else np.zeros((0,))
+    row_map_values = (
+        torch.from_numpy(data["row_map_values"].astype(np.int64))
+        if "row_map_values" in data
+        else torch.zeros((0,), dtype=torch.long)
+    )
+    row_map_offsets = data["row_map_offsets"].tolist() if "row_map_offsets" in data else [0] * (n + 1)
     instances = []
     cursor = 0
     for row in range(n):
@@ -84,6 +101,8 @@ def load_instances(path) -> list[dict[str, Any]]:
             cursor += length
             if length:
                 residuals[key] = torch.from_numpy(chunk.astype(np.float32))
+        lo, hi = int(row_map_offsets[row]), int(row_map_offsets[row + 1])
+        row_map = row_map_values[lo:hi].clone() if hi > lo else None
         instances.append(
             {
                 "template_id": int(data["template_ids"][row]),
@@ -93,6 +112,7 @@ def load_instances(path) -> list[dict[str, Any]]:
                 "scale": torch.from_numpy(data["scale"][row].astype(np.float32)),
                 "center": torch.from_numpy(data["center"][row].astype(np.float32)),
                 "residuals": residuals,
+                "row_map": row_map,
             }
         )
     return instances
@@ -108,6 +128,8 @@ def build_bundle(
     stream_globs: Iterable[str] = ("*.b", "*.npz"),
     scene_id: str = "",
     notes: str = "",
+    owner_phase: str = "init_only",
+    owner_provenance: str = "",
 ):
     """Write ``<out_root>`` as a manifest-described bundle.
 
@@ -154,6 +176,15 @@ def build_bundle(
 
     shared: Dict[str, list[str]] = []
     if shared_decoder_weights is not None:
+        from .manifest import verify_shared_decoder_file
+
+        offending = verify_shared_decoder_file(shared_decoder_weights)
+        if offending:
+            raise ValueError(
+                "shared decoder file %s carries hash/encoding state %s; the hash "
+                "grid must stay in hash.b and be billed once"
+                % (shared_decoder_weights, offending)
+            )
         dst = out_root / "hacpp" / Path(shared_decoder_weights).name
         shutil.copy2(shared_decoder_weights, dst)
         shared.append(dst.relative_to(out_root).as_posix())

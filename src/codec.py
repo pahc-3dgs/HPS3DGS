@@ -8,15 +8,26 @@ Format version 0.2 fixes two correctness problems of the 0.1 writer:
   HAC++ stores its anchor ``_scaling`` in the same log domain, so the same rule
   applies there; only tensors that already hold physical scales use the linear
   rule.
-* per-instance ``features_rest`` (SH) is never silently dropped. The behaviour
-  is selected with ``sh_mode`` and recorded in ``metadata``:
+* per-instance appearance is never silently dropped. ``sh_mode`` selects the
+  policy and the writer must record it in ``metadata``:
 
-  - ``residual`` (default, lossless): store ``sh_instance - sh_template``.
-    Decoding is exact; the bit cost is billed in the instance stream.
-  - ``full`` (lossless): store the instance SH tensor verbatim.
-  - ``zero`` (lossy, "dc_only"): drop instance SH. The payload metadata marks
-    ``sh_mode: zero`` and ``lossless: false``; this is *not* an equivalent
-    reconstruction and must not be reported as one.
+  - ``residual`` (default): the instance stores
+    ``attr_target - attr_posed_template`` for every attribute listed in
+    ``residual_attributes``. Decoding adds the residual back, so the
+    reconstruction reproduces the *target* instance appearance exactly for
+    those attributes - provided a row correspondence between the target
+    cluster and the template rows exists. That correspondence is stored in
+    ``TemplateInstance.row_map`` (deterministic nearest-neighbour in
+    ``scripts/compress.py``); when it cannot be built the writer must fail
+    instead of claiming losslessness.
+  - ``full``: store the instance attribute tensor verbatim (lossless, no
+    sharing benefit for that attribute).
+  - ``zero`` (``dc_only``): drop instance SH. Metadata carries
+    ``sh_mode: zero`` and ``lossless: false``; this is a lossy reconstruction
+    and must not be reported as equivalent.
+
+  A claim of losslessness is only made when every attribute of the instance is
+  either stored verbatim or covered by a residual plus a proven row map.
 """
 
 from __future__ import annotations
@@ -54,6 +65,12 @@ class TemplateInstance:
     ``rotation`` is a world-from-canonical quaternion (w, x, y, z) or a 3x3
     matrix. ``translation`` is expressed in world units and is added *after*
     the rotation about ``center``. ``scale`` is a scalar uniform scale.
+
+    ``row_map`` is the deterministic correspondence between this instance's
+    Gaussians and the canonical template rows: ``row_map[j]`` is the template
+    row that instance Gaussian ``j`` is derived from. ``None`` means identity
+    (the instance uses every template row, in order), which is only valid when
+    the target cluster has exactly the template's row count.
     """
 
     template_id: int
@@ -64,6 +81,7 @@ class TemplateInstance:
     center: torch.Tensor | None = None
     # Optional per-instance appearance residual keyed by attribute name.
     residuals: dict[str, torch.Tensor] = field(default_factory=dict)
+    row_map: torch.Tensor | None = None
 
     def to_payload(self):
         return {
@@ -74,6 +92,7 @@ class TemplateInstance:
             "scale": self.scale,
             "center": self.center,
             "residuals": self.residuals,
+            "row_map": self.row_map,
         }
 
     @classmethod
@@ -86,6 +105,7 @@ class TemplateInstance:
             scale=payload.get("scale"),
             center=payload.get("center"),
             residuals=payload.get("residuals", {}) or {},
+            row_map=payload.get("row_map"),
         )
 
 
@@ -134,6 +154,9 @@ class CompactScene:
     scaling_domains: dict[str, str] = field(default_factory=dict)
     #: How per-instance SH is encoded: residual | full | zero.
     sh_mode: str = "residual"
+    #: Attributes carried as per-instance residuals (or verbatim / zeroed
+    #: according to ``sh_mode`` for ``features_rest``).
+    residual_attributes: list[str] = field(default_factory=lambda: ["features_dc", "features_rest"])
 
     def domain_of(self, key: str) -> str:
         if key in self.scaling_domains:
@@ -150,6 +173,7 @@ class CompactScene:
             "metadata": self.metadata,
             "scaling_domains": self.scaling_domains,
             "sh_mode": self.sh_mode,
+            "residual_attributes": self.residual_attributes,
         }
 
     @classmethod
@@ -165,6 +189,9 @@ class CompactScene:
             # equivalent; mark the payload honestly instead.
             sh_mode = "zero"
         return cls(
+            residual_attributes=payload.get(
+                "residual_attributes", ["features_dc", "features_rest"]
+            ),
             version=version,
             templates=payload.get("templates", {}),
             static_gaussians=payload.get("static_gaussians", {}),
@@ -305,6 +332,16 @@ def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | No
 
     for instance in scene.instances:
         canonical = template_tensors(scene, instance.template_id, base)
+        if instance.row_map is not None:
+            rows = instance.row_map.to(torch.long).reshape(-1)
+            if rows.numel() == 0:
+                raise ValueError("Instance %d has an empty row_map" % instance.instance_id)
+            if int(rows.min()) < 0 or int(rows.max()) >= canonical["xyz"].shape[0]:
+                raise ValueError(
+                    "Instance %d row_map references rows outside template %d "
+                    "(%d rows)" % (instance.instance_id, instance.template_id, canonical["xyz"].shape[0])
+                )
+            canonical = {key: value[rows] for key, value in canonical.items()}
         output = {key: value.clone() for key, value in canonical.items()}
         transform_instance_tensors(
             output,
@@ -314,21 +351,26 @@ def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | No
             instance.center,
             scaling_domains=scene.scaling_domains,
         )
-        # Per-instance appearance. SH is handled explicitly: residual / full /
-        # zero, and the choice is recorded in metadata by the writer.
-        if "features_rest" in canonical:
-            sh_template = canonical["features_rest"]
-            if scene.sh_mode == "residual":
-                residual = instance.residuals.get("features_rest")
-                if residual is None:
-                    residual = torch.zeros_like(sh_template)
-                output["features_rest"] = sh_template + residual.to(sh_template)
+        # Per-instance appearance. Every attribute in ``residual_attributes``
+        # is either reconstructed exactly from a stored residual (residual /
+        # full) or explicitly zeroed (dc_only -> ``features_rest``); the choice
+        # is recorded in metadata by the writer, never assumed.
+        for key in list(output.keys()):
+            if key not in scene.residual_attributes:
+                continue
+            if scene.sh_mode == "zero" and key == "features_rest":
+                output[key] = torch.zeros_like(output[key])
             elif scene.sh_mode == "full":
-                output["features_rest"] = instance.residuals["features_rest"].to(sh_template)
-            elif scene.sh_mode == "zero":
-                output["features_rest"] = torch.zeros_like(sh_template)
-            else:
-                raise ValueError("Unknown sh_mode %r" % scene.sh_mode)
+                if key not in instance.residuals:
+                    raise ValueError(
+                        "sh_mode='full' requires a stored %r for instance %d"
+                        % (key, instance.instance_id)
+                    )
+                output[key] = instance.residuals[key].to(output[key])
+            else:  # residual
+                residual = instance.residuals.get(key)
+                if residual is not None:
+                    output[key] = output[key] + residual.to(output[key])
         chunks.append(output)
 
     if not chunks:
@@ -386,3 +428,73 @@ def build_instance_residuals(
             )
         instance.residuals[attribute] = (values - template).detach().cpu()
     return instances
+
+
+def nearest_row_map(posed_template_xyz: torch.Tensor, target_xyz: torch.Tensor):
+    """Deterministic target->template-row correspondence.
+
+    Row ``j`` of the target cluster is assigned the pose-transformed template
+    row with the smallest Euclidean distance. ``torch.cdist`` + ``argmin``
+    (first minimum wins) keeps the mapping deterministic for a given input
+    ordering, which is what makes a lossless residual claim checkable.
+    """
+
+    if posed_template_xyz.shape[0] == 0 or target_xyz.shape[0] == 0:
+        raise ValueError("Cannot build a row correspondence for an empty cluster")
+    dist = torch.cdist(
+        target_xyz.to(posed_template_xyz).unsqueeze(0),
+        posed_template_xyz.to(target_xyz).unsqueeze(0),
+    )[0]
+    return torch.argmin(dist, dim=1).to(torch.long)
+
+
+def compute_instance_residuals(
+    scene: CompactScene,
+    instance_payloads: list[dict[str, torch.Tensor]],
+    attributes: list[str] | None = None,
+    base: dict[str, torch.Tensor] | None = None,
+):
+    """Fill ``instance.residuals`` so decoding reproduces the target payloads.
+
+    ``instance_payloads[i]`` holds the world-frame tensors of instance ``i`` as
+    they should come out of the decoder (typically the *target* cluster's
+    attributes). The residual is computed against the decoder's own posed
+    template rows, so ``decode_compact_scene(scene)`` plus residuals equals the
+    payload for the listed attributes. Shape mismatches raise - the honest
+    failure mode instead of a silent lossless claim.
+    """
+
+    attributes = attributes or list(scene.residual_attributes)
+    expanded = expand_compact_basis(scene, base)
+    cursor = int(scene.static_gaussians["xyz"].shape[0]) if scene.static_gaussians else 0
+    for index, instance in enumerate(scene.instances):
+        payload = instance_payloads[index]
+        count = int(payload["xyz"].shape[0])
+        start = cursor + sum(int(p["xyz"].shape[0]) for p in instance_payloads[:index])
+        for attribute in attributes:
+            if attribute not in payload:
+                continue
+            target = payload[attribute].detach()
+            posed = expanded[attribute][start : start + count]
+            if posed.shape != target.shape:
+                raise ValueError(
+                    "Instance %d: posed template %s != target %s for %r; cannot "
+                    "claim a lossless residual without a valid row_map"
+                    % (instance.instance_id, tuple(posed.shape), tuple(target.shape), attribute)
+                )
+            instance.residuals[attribute] = (target - posed).detach().cpu()
+    return scene
+
+
+def lossless_attributes(scene: CompactScene):
+    """Attributes reproduced exactly on decode, given the scene's policy."""
+
+    if scene.sh_mode == "full":
+        return list(scene.residual_attributes)
+    if scene.sh_mode == "zero":
+        return [name for name in scene.residual_attributes if name != "features_rest"]
+    return [
+        name
+        for name in scene.residual_attributes
+        if all(name in instance.residuals for instance in scene.instances)
+    ]

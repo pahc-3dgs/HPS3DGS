@@ -66,6 +66,9 @@ class PAHCConfig:
 
     feature_dim: int = 32
     feature_iteration: int = 10000
+    #: Keep per-instance SH in the instance payload (True) or drop it
+    #: ("dc_only", lossy and reported as such). Never silently zeroed.
+    appearance_keep_sh: bool = True
     clustering: ClusterConfig = field(default_factory=ClusterConfig)
     matching: MatchingConfig = field(default_factory=MatchingConfig)
     refinement: RefinementConfig = field(default_factory=RefinementConfig)
@@ -520,11 +523,15 @@ def build_instance_payloads(gaussians: Any, alignments, keep_appearance: bool = 
         with torch.no_grad():
             fin_trans_xyz, fin_trans_rot = transform_net(gaussians._xyz[src_mask], gaussians._rotation[src_mask])
             iso_scale = torch.abs(transform_net.scale_factor).expand(3).unsqueeze(0)
+            # `_scaling` is the log-domain parameter of standard 3DGS
+            # (get_scaling = exp(_scaling)), so the uniform instance scale must
+            # be *added* as log(s); multiplying would be wrong in every
+            # downstream exp().
             payloads.append(
                 {
                     "xyz": fin_trans_xyz,
                     "rotation": fin_trans_rot,
-                    "scaling": gaussians._scaling[src_mask] * iso_scale,
+                    "scaling": gaussians._scaling[src_mask] + torch.log(iso_scale),
                     "opacity": gaussians._opacity[src_mask].clone(),
                     "features_dc": gaussians._features_dc[src_mask].clone(),
                     "features_rest": (
@@ -546,6 +553,7 @@ def refine_matched_components(
     matches,
     backend,
     config=None,
+    keep_appearance: bool = True,
 ):
     config = config or PAHCConfig()
     refinement = config.refinement
@@ -668,6 +676,7 @@ def run_geo32_compression(
         discovery["matches"],
         backend,
         config,
+        keep_appearance=config.appearance_keep_sh,
     )
     return {
         "labels": labels,

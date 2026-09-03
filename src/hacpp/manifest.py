@@ -48,7 +48,7 @@ class SharedDecoder:
     """The one-and-only shared HAC++ decoder of a scene."""
 
     kind: str = "hacpp_shared_v1"
-    weights: str = "hacpp/mlp.pt"
+    weights: str = "hacpp/shared_mlp.pt"
     #: Files carrying decoder state. ``hash.b`` is deliberately excluded: it is
     #: an HAC++ *scene* stream, not shared decoder state, and it is already
     #: counted under ``streams``.
@@ -66,6 +66,8 @@ class SharedDecoder:
             raise ManifestError("shared decoder must exclude the hash grid (hash.b)")
         if any("hash.b" in str(item) for item in [self.weights, *self.auxiliary]):
             raise ManifestError("hash.b must not be listed in the shared decoder")
+        if any("encoding_xyz" in str(item) for item in [self.weights, *self.auxiliary]):
+            raise ManifestError("shared decoder must not embed the hash grid (encoding_xyz)")
         return self
 
 
@@ -76,6 +78,39 @@ class OwnerSection:
     num_owners: int = 0
     ordering: str = "morton"
     layout: str = "owner_id:int32, row_in_owner:int32"
+    #: ``init_only``: owner ids come from PAHC clustering and are *not*
+    #: propagated through HAC++ anchor densification/pruning, so they are valid
+    #: only for the initialisation cloud. Claiming ``stable`` requires
+    #: ``provenance`` describing how ownership was tracked during training -
+    #: without it the manifest refuses the stronger claim.
+    phase: str = "init_only"
+    provenance: str = ""
+
+    def validate(self):
+        if self.phase not in ("init_only", "stable"):
+            raise ManifestError("owner phase must be 'init_only' or 'stable'")
+        if self.phase == "stable" and not self.provenance:
+            raise ManifestError(
+                "owner phase 'stable' requires provenance (how ownership was "
+                "tracked through HAC++ densification/pruning)"
+            )
+        return self
+
+
+def verify_shared_decoder_file(path):
+    """Structural check: the shared decoder state must not embed the hash grid.
+
+    Returns the offending keys (empty list means the file is compliant).
+    """
+
+    import torch
+
+    state = torch.load(path, map_location="cpu")
+    if isinstance(state, dict) and not all(hasattr(value, "state_dict") for value in state.values()):
+        keys = list(state.keys())
+    else:  # a plain state dict of tensors
+        keys = list(state.keys())
+    return [key for key in keys if "encoding" in key or "hash" in key]
 
 
 @dataclass
@@ -135,6 +170,7 @@ class HacppManifest:
         """
 
         self.shared_decoder.validate()
+        self.owners.validate()
         if self.owners.num_owners <= 0:
             raise ManifestError("bundle must declare at least one owner/template")
         if self.instances.count > 0 and self.owners.num_owners <= 0:

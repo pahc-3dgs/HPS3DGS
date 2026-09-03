@@ -10,29 +10,45 @@ that ``import scene`` / ``import gaussian_renderer`` resolve to the HAC++
 packages and never collide with the SegAnyGaussians packages used elsewhere in
 PAHC (this is why the bridge is a subprocess and not an in-process import).
 
+The driver mirrors the *reference* HAC++ API exactly:
+
+* ``Scene(args, gaussians, load_iteration=None, shuffle=True,
+  resolution_scales=[1.0], ply_path=None)`` - there is no ``mode``/``target``
+  argument in HAC++ (that is the SegAnyGaussians signature).
+* ``train.py`` saves ``chkpnt<iter>.pth`` as ``(gaussians.capture(),
+  iteration)`` and ``Scene.save`` writes ``point_cloud/iteration_N/
+  {point_cloud.ply, checkpoint.pth}``. Loading goes through
+  ``Scene(load_iteration=-1)`` which reads the PLY + ``checkpoint.pth``;
+  a raw ``chkpnt*.pth`` is only used as a fallback and is unwrapped from its
+  ``(capture, iteration)`` tuple first.
+* ``GaussianModel(feat_dim, n_offsets, voxel_size, update_depth,
+  update_init_factor, update_hierachy_factor, use_feat_bank, ...)`` built from
+  the dataset attributes, as ``train.py`` does.
+
 Commands
 --------
-inspect      report which HAC++ modules/extension deps are importable (no GPU work)
-encode       run ``GaussianModel.conduct_encoding`` on a trained HAC++ model dir
-decode       run ``GaussianModel.conduct_decoding`` and optional test render
-render       render a (decoded) HAC++ model dir and report PSNR/SSIM
+inspect   report which HAC++ modules/extension deps are importable (no GPU work)
+encode    run ``GaussianModel.conduct_encoding`` on a trained HAC++ model dir
+decode    run ``GaussianModel.conduct_decoding`` and render test views
+render    render a (decoded) HAC++ model dir and report PSNR
 
 Every command prints a single JSON object on stdout; anything on stderr is a
 human-readable error. Missing deps or checkpoints are reported honestly as
-``{"ok": false, "error": ...}`` with a non-zero exit code.
+``{"ok": false, "error": ...}`` with a non-zero exit code - nothing is faked.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import sys
 
 
 def _prepend_hacpp_root(root: str):
     root = os.path.abspath(root)
-    # Remove any other copy of the top-level packages first (e.g. SegAnyGaussians).
+    # Drop any other copy of the top-level packages (e.g. SegAnyGaussians).
     for name in ("scene", "gaussian_renderer", "arguments", "utils"):
         for key in [k for k in sys.modules if k == name or k.startswith(name + ".")]:
             del sys.modules[key]
@@ -47,6 +63,8 @@ def _json_print(payload):
 
 def cmd_inspect(args):
     root = _prepend_hacpp_root(args.hacpp_root)
+    import shutil
+
     import torch
 
     report = {
@@ -72,12 +90,12 @@ def cmd_inspect(args):
             report["modules"][name] = {"ok": True}
         except Exception as exc:  # noqa: BLE001 - report every failure mode
             report["modules"][name] = {"ok": False, "error": "%s: %s" % (type(exc).__name__, exc)}
-    try:
-        import shutil
-
-        report["tmc3"] = shutil.which("tmc3")
-    except Exception:  # noqa: BLE001
-        report["tmc3"] = None
+    report["tmc3"] = shutil.which("tmc3")
+    if report["tmc3"] is None:
+        report["modules"]["tmc3 (GPCC)"] = {
+            "ok": False,
+            "error": "tmc3 binary not on PATH; anchor GPCC coding will fail",
+        }
     missing = [name for name, info in report["modules"].items() if not info["ok"]]
     report["ready_for_encode"] = not missing
     report["missing"] = missing
@@ -85,153 +103,215 @@ def cmd_inspect(args):
     return 0
 
 
-def _load_model(hacpp_root, model_path, device, decoded=False):
-    from argparse import Namespace
+def _torch_load(path, device):
+    """torch.load that works on both torch<2.0 (no weights_only) and >=2.0."""
 
     import torch
 
+    try:
+        return torch.load(path, map_location=device, weights_only=False)
+    except TypeError:  # torch 1.x has no weights_only
+        return torch.load(path, map_location=device)
+
+
+def _dataset_args(model_path, source_path):
+    """Build the HAC++ ModelParams/PipelineParams namespace trio."""
+
+    from arguments import ModelParams, OptimizationParams, PipelineParams
+
+    parser = argparse.ArgumentParser(add_help=False)
+    model_params = ModelParams(parser)
+    pipeline_params = PipelineParams(parser)
+    optimization_params = OptimizationParams(parser)
+    argv = ["-s", os.path.abspath(source_path or model_path), "-m", os.path.abspath(model_path)]
+    args = parser.parse_args(argv)
+    return model_params.extract(args), pipeline_params.extract(args), optimization_params.extract(args)
+
+
+def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration=-1, ply_path=None):
+    """Construct the HAC++ scene exactly like ``train.py`` does."""
+
+    from scene import Scene
     from scene.gaussian_model import GaussianModel
 
-    model_path = os.path.abspath(model_path)
-    cfg_path = os.path.join(model_path, "cfg_args")
-    if not os.path.isfile(cfg_path):
-        raise FileNotFoundError(
-            "%s does not contain cfg_args; this must be a *trained HAC++* model "
-            "directory produced by HAC++ train.py, not a SAGA/3DGS checkpoint "
-            "(those store a different parameterisation and cannot be restored)."
-            % model_path
-        )
-    dataset = eval(open(cfg_path).read(), {"Namespace": Namespace})  # noqa: S307
-    model_kwargs = dict(
-        feat_dim=50,
-        n_offsets=10,
-        voxel_size=0.01,
-        update_depth=3,
-        update_init_factor=100,
-        update_hierachy_factor=4,
-        use_feat_bank=getattr(dataset, "use_feat_bank", False),
-        n_features_per_level=2,
-        log2_hashmap_size=getattr(dataset, "log2_hashmap_size", 19),
-        log2_hashmap_size_2D=getattr(dataset, "log2_hashmap_size_2D", 17),
-        resolutions_list=getattr(
-            dataset,
-            "resolutions_list",
-            (18, 24, 33, 44, 59, 80, 108, 148, 201, 275, 376, 514),
-        ),
-        resolutions_list_2D=getattr(dataset, "resolutions_list_2D", (130, 258, 514, 1026)),
-        ste_binary=getattr(dataset, "ste_binary", True),
-        ste_multistep=getattr(dataset, "ste_multistep", False),
-        add_noise=getattr(dataset, "add_noise", False),
-        Q=1,
-        use_2D=getattr(dataset, "use_2D", True),
-        decoded_version=decoded,
-        is_synthetic_nerf=getattr(dataset, "is_synthetic_nerf", False),
+    dataset, pipe, _opt = _dataset_args(model_path, source_path)
+    gaussians = GaussianModel(
+        dataset.feat_dim,
+        dataset.n_offsets,
+        dataset.voxel_size,
+        dataset.update_depth,
+        dataset.update_init_factor,
+        dataset.update_hierachy_factor,
+        dataset.use_feat_bank,
     )
-    pc = GaussianModel(**model_kwargs)
-    checkpoint = os.path.join(model_path, "chkpnt.pth")
-    if not os.path.isfile(checkpoint):
-        candidates = sorted(
-            entry for entry in os.listdir(model_path) if entry.startswith("chkpnt")
+    gaussians = gaussians.to(device)
+    scene = Scene(
+        dataset,
+        gaussians,
+        load_iteration=load_iteration,
+        shuffle=False,
+        ply_path=ply_path,
+    )
+    return scene, gaussians, dataset, pipe
+
+
+def load_chkpnt_fallback(hacpp_root, model_path, source_path, device):
+    """Load a raw ``chkpnt<iter>.pth`` (a ``(capture(), iteration)`` tuple).
+
+    HAC++ ``GaussianModel.restore`` unpacks 11 fields while ``capture`` returns
+    10 (no ``active_sh_degree``), so a checkpoint-restore path is only used
+    when the canonical ``point_cloud/iteration_*`` artefacts are absent; the
+    arity mismatch is reported instead of silently ignored.
+    """
+
+    from scene.gaussian_model import GaussianModel
+
+    dataset, _pipe, opt = _dataset_args(model_path, source_path)
+    candidates = sorted(
+        entry for entry in os.listdir(model_path) if entry.startswith("chkpnt") and entry.endswith(".pth")
+    )
+    if not candidates:
+        raise FileNotFoundError(
+            "%s has neither point_cloud/iteration_*/point_cloud.ply nor "
+            "chkpnt*.pth. encode/decode need a model directory produced by "
+            "HAC++ train.py; a SAGA/3DGS checkpoint stores a different "
+            "parameterisation and cannot be restored." % model_path
         )
-        if not candidates:
-            raise FileNotFoundError(
-                "no chkpnt*.pth in %s; HAC++ encode/decode needs a trained "
-                "HAC++ student checkpoint" % model_path
-            )
-        checkpoint = os.path.join(model_path, candidates[-1])
-    state = torch.load(checkpoint, map_location=device)
-    pc.restore(state, Namespace(percent_dense=getattr(dataset, "percent_dense", 0.01)))
-    if decoded:
-        pc.decoded_version = True
-    return pc, dataset
+    checkpoint = os.path.join(model_path, candidates[-1])
+    payload = _torch_load(checkpoint, device)
+    if isinstance(payload, tuple):
+        state, iteration = payload[0], payload[1] if len(payload) > 1 else None
+    else:
+        state, iteration = payload, None
+    gaussians = GaussianModel(
+        dataset.feat_dim,
+        dataset.n_offsets,
+        dataset.voxel_size,
+        dataset.update_depth,
+        dataset.update_init_factor,
+        dataset.update_hierachy_factor,
+        dataset.use_feat_bank,
+    ).to(device)
+    try:
+        gaussians.restore(state, opt)
+    except ValueError as exc:
+        raise RuntimeError(
+            "HAC++ checkpoint %s could not be restored (%s); capture()/restore() "
+            "arity mismatch in the reference implementation. Use the "
+            "point_cloud/iteration_* artefacts written by Scene.save instead."
+            % (checkpoint, exc)
+        )
+    return gaussians, dataset, iteration
+
+
+def save_shared_decoder(pc, path):
+    """Write decoder weights *without* the hash grid.
+
+    ``GaussianModel.save_mlp_checkpoints`` stores ``encoding_xyz`` too, but the
+    hash grid is a per-scene stream (``hash.b``); keeping it in the shared
+    decoder would double-bill those bytes and contradict the manifest contract
+    enforced by :mod:`pahc.hacpp.manifest`.
+    """
+
+    state = {
+        "opacity_mlp": pc.mlp_opacity.state_dict(),
+        "cov_mlp": pc.mlp_cov.state_dict(),
+        "color_mlp": pc.mlp_color.state_dict(),
+        "grid_mlp": pc.mlp_grid.state_dict(),
+        "deform_mlp": pc.mlp_deform.state_dict(),
+    }
+    if getattr(pc, "use_feat_bank", False):
+        state["mlp_feature_bank"] = pc.mlp_feature_bank.state_dict()
+    forbidden = [key for key in state if "encoding" in key or "hash" in key]
+    if forbidden:
+        raise RuntimeError("shared decoder must not carry hash/encoding state: %s" % forbidden)
+    import torch
+
+    torch.save(state, path)
+    return state
+
+
+def shared_decoder_has_no_hash(path):
+    """Structural check used by tests and by the bundle verifier."""
+
+    state = _torch_load(path, "cpu")
+    offending = [key for key in state if "encoding" in key or "hash" in key]
+    return offending
+
+
+def _render_psnr(scene, gaussians, pipe, device, split="test"):
+    """Render the requested split (test preferred, explicit train fallback)."""
+
+    import torch
+
+    from gaussian_renderer import render
+
+    if split == "test":
+        cameras = scene.getTestCameras()
+        if not cameras:
+            return {"split": "train_fallback", "views": 0, "psnr": None, "reason": "no test cameras"}
+    else:
+        cameras = scene.getTrainCameras()
+    background = torch.tensor([0, 0, 0], dtype=torch.float32, device=device)
+    psnr_sum, count = 0.0, 0
+    for cam in cameras:
+        with torch.no_grad():
+            image = render(cam, gaussians, pipe, background)["render"].clamp(0, 1)
+        target = cam.original_image.to(device).clamp(0, 1)
+        mse = torch.mean((image - target) ** 2).item()
+        psnr_sum += -10.0 * math.log10(max(mse, 1e-12))
+        count += 1
+    return {"split": split, "views": count, "psnr": psnr_sum / max(count, 1)}
 
 
 def cmd_encode(args):
     _prepend_hacpp_root(args.hacpp_root)
-    import torch  # noqa: F401 - the model constructor assumes CUDA is set up
-
-    device = args.device
-    pc, dataset = _load_model(args.hacpp_root, args.model_path, device)
+    scene, gaussians, _dataset, _pipe = load_hacpp_scene(
+        args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
+    )
     os.makedirs(args.out_dir, exist_ok=True)
-    log_info = pc.conduct_encoding(pre_path_name=args.out_dir)
-    payload = {"ok": True, "out_dir": os.path.abspath(args.out_dir), "log": log_info}
-    mlp_path = os.path.join(args.out_dir, "mlp.pt")
-    pc.save_mlp_checkpoints(mlp_path)
-    payload["shared_decoder"] = {"weights": os.path.relpath(mlp_path, args.out_dir)}
+    log_info = gaussians.conduct_encoding(pre_path_name=args.out_dir)
+    decoder_path = os.path.join(args.out_dir, "shared_mlp.pt")
+    state = save_shared_decoder(gaussians, decoder_path)
+    payload = {
+        "ok": True,
+        "out_dir": os.path.abspath(args.out_dir),
+        "log": log_info,
+        "shared_decoder": {
+            "weights": "shared_mlp.pt",
+            "keys": sorted(state.keys()),
+            "excludes_hash": True,
+        },
+    }
     _json_print(payload)
     return 0
 
 
 def cmd_decode(args):
     _prepend_hacpp_root(args.hacpp_root)
-    import math
-
-    import torch
-
-    device = args.device
-    pc, dataset = _load_model(
-        args.hacpp_root, args.model_path, device, decoded=args.decoded
+    scene, gaussians, _dataset, pipe = load_hacpp_scene(
+        args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
     )
     if not os.path.isdir(args.bitstream_dir):
         raise FileNotFoundError("bitstream dir not found: %s" % args.bitstream_dir)
-    log_info = pc.conduct_decoding(pre_path_name=args.bitstream_dir)
-    payload = {"ok": True, "log": log_info}
-    if args.render_out:
-        from argparse import Namespace as _NS
-
-        from scene import Scene
-        from gaussian_renderer import render
-
-        dataset.source_path = os.path.abspath(args.source_path) if args.source_path else dataset.source_path
-        scene = Scene(dataset, pc, load_iteration=-1, shuffle=False, mode="eval")
-        cameras = scene.getTestCameras() or scene.getTrainCameras()
-        split = "test" if scene.getTestCameras() else "train"
-        bg = torch.tensor([0, 0, 0], dtype=torch.float32, device=device)
-        psnr_sum, count = 0.0, 0
-        for cam in cameras:
-            with torch.no_grad():
-                image = render(cam, pc, _NS(debug=False), bg)["render"].clamp(0, 1)
-            target = cam.original_image.to(device).clamp(0, 1)
-            mse = torch.mean((image - target) ** 2).item()
-            psnr_sum += -10.0 * math.log10(max(mse, 1e-12))
-            count += 1
-        payload["render"] = {
-            "split": split,
-            "views": count,
-            "psnr": psnr_sum / max(count, 1),
-        }
+    payload = {"ok": True}
+    if args.render:
+        payload["render_full"] = _render_psnr(scene, gaussians, pipe, args.device, "test")
+    log_info = gaussians.conduct_decoding(pre_path_name=args.bitstream_dir)
+    payload["log"] = log_info
+    if args.render:
+        payload["render_decoded"] = _render_psnr(scene, gaussians, pipe, args.device, "test")
     _json_print(payload)
     return 0
 
 
 def cmd_render(args):
     _prepend_hacpp_root(args.hacpp_root)
-    import math
-
-    import torch
-
-    from argparse import Namespace as _NS
-
-    from scene import Scene
-    from gaussian_renderer import render
-
-    device = args.device
-    pc, dataset = _load_model(args.hacpp_root, args.model_path, device, decoded=args.decoded)
-    dataset.source_path = os.path.abspath(args.source_path) if args.source_path else dataset.source_path
-    scene = Scene(dataset, pc, load_iteration=-1, shuffle=False, mode="eval")
-    test_cameras = scene.getTestCameras()
-    cameras = test_cameras if test_cameras else scene.getTrainCameras()
-    split = "test" if test_cameras else "train"
-    bg = torch.tensor([0, 0, 0], dtype=torch.float32, device=device)
-    psnr_sum, count = 0.0, 0
-    for cam in cameras:
-        with torch.no_grad():
-            image = render(cam, pc, _NS(debug=False), bg)["render"].clamp(0, 1)
-        target = cam.original_image.to(device).clamp(0, 1)
-        mse = torch.mean((image - target) ** 2).item()
-        psnr_sum += -10.0 * math.log10(max(mse, 1e-12))
-        count += 1
-    _json_print({"ok": True, "split": split, "views": count, "psnr": psnr_sum / max(count, 1)})
+    scene, gaussians, _dataset, pipe = load_hacpp_scene(
+        args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
+    )
+    payload = {"ok": True, "full": _render_psnr(scene, gaussians, pipe, args.device, "test")}
+    _json_print(payload)
     return 0
 
 
@@ -246,17 +326,16 @@ def main(argv=None):
     encode = sub.add_parser("encode")
     encode.add_argument("--model-path", required=True)
     encode.add_argument("--out-dir", required=True)
+    encode.add_argument("--source-path", default=None)
 
     decode = sub.add_parser("decode")
     decode.add_argument("--model-path", required=True)
     decode.add_argument("--bitstream-dir", required=True)
-    decode.add_argument("--decoded", action="store_true")
     decode.add_argument("--source-path", default=None)
-    decode.add_argument("--render-out", action="store_true")
+    decode.add_argument("--render", action="store_true")
 
     render_cmd = sub.add_parser("render")
     render_cmd.add_argument("--model-path", required=True)
-    render_cmd.add_argument("--decoded", action="store_true")
     render_cmd.add_argument("--source-path", default=None)
 
     args = parser.parse_args(argv)
