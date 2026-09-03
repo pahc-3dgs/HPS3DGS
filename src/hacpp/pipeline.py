@@ -17,8 +17,21 @@ import torch
 
 from ..codec import CompactScene
 from .bundle import finalize_bundle
-from .manifest import HacppManifest
+from .manifest import HacppManifest, InstanceSection
 from .owners import build_owner_index, owner_blocks_are_contiguous, save_owners
+
+
+def _pack_shapes(shapes: list[list[int]]):
+    """Rectangle-ify ragged shape lists (numpy cannot store ragged rows)."""
+
+    if not shapes:
+        return np.zeros((0, 1), dtype=np.int64)
+    ndim = max(max((len(shape) for shape in shapes), default=1), 1)
+    packed = np.ones((len(shapes), ndim), dtype=np.int64)
+    for row, shape in enumerate(shapes):
+        if shape:
+            packed[row, : len(shape)] = np.asarray(shape, dtype=np.int64)
+    return packed
 
 
 def save_instances(path, scene: CompactScene):
@@ -33,7 +46,12 @@ def save_instances(path, scene: CompactScene):
     instance_ids = np.zeros((n,), dtype=np.int32)
     residual_keys: list[str] = []
     residual_lengths: list[int] = []
+    residual_shapes: list[list[int]] = []
+    residual_ndims: list[int] = []
     residual_values: list[torch.Tensor] = []
+    # Per-instance windows into the flattened residual entry list.
+    residual_entry_starts = np.zeros((n,), dtype=np.int64)
+    residual_entry_counts = np.zeros((n,), dtype=np.int64)
     row_map_offsets = np.zeros((n + 1,), dtype=np.int64)
     row_map_values: list[torch.Tensor] = []
     for row, instance in enumerate(scene.instances):
@@ -55,10 +73,15 @@ def save_instances(path, scene: CompactScene):
         row_map_offsets[row + 1] = row_map_offsets[row] + (
             0 if instance.row_map is None else int(instance.row_map.numel())
         )
+        residual_entry_starts[row] = len(residual_keys)
         for key, value in sorted(instance.residuals.items()):
+            value = value.detach().cpu()
             residual_keys.append(key)
             residual_lengths.append(int(value.numel()))
-            residual_values.append(value.detach().cpu().reshape(-1))
+            residual_shapes.append([int(size) for size in value.shape])
+            residual_ndims.append(int(value.dim()))
+            residual_values.append(value.reshape(-1))
+        residual_entry_counts[row] = len(residual_keys) - int(residual_entry_starts[row])
     payload = {
         "template_ids": template_ids,
         "instance_ids": instance_ids,
@@ -71,6 +94,10 @@ def save_instances(path, scene: CompactScene):
         "row_map_offsets": row_map_offsets,
         "residual_keys": np.asarray(residual_keys),
         "residual_lengths": np.asarray(residual_lengths, dtype=np.int64),
+        "residual_shapes": _pack_shapes(residual_shapes),
+        "residual_ndims": np.asarray(residual_ndims, dtype=np.int64),
+        "residual_entry_starts": residual_entry_starts,
+        "residual_entry_counts": residual_entry_counts,
     }
     if residual_values:
         payload["residual_values"] = torch.cat(residual_values).numpy()
@@ -85,6 +112,10 @@ def load_instances(path) -> list[dict[str, Any]]:
     n = data["template_ids"].shape[0]
     residual_keys = [str(item) for item in data["residual_keys"].tolist()]
     residual_lengths = data["residual_lengths"].tolist()
+    residual_shapes = data["residual_shapes"].tolist() if "residual_shapes" in data else []
+    residual_ndims = data["residual_ndims"].tolist() if "residual_ndims" in data else []
+    entry_starts = data["residual_entry_starts"].tolist() if "residual_entry_starts" in data else [0] * n
+    entry_counts = data["residual_entry_counts"].tolist() if "residual_entry_counts" in data else [0] * n
     values = data["residual_values"] if "residual_values" in data else np.zeros((0,))
     row_map_values = (
         torch.from_numpy(data["row_map_values"].astype(np.int64))
@@ -93,14 +124,17 @@ def load_instances(path) -> list[dict[str, Any]]:
     )
     row_map_offsets = data["row_map_offsets"].tolist() if "row_map_offsets" in data else [0] * (n + 1)
     instances = []
-    cursor = 0
+    flat_cursor = 0
     for row in range(n):
         residuals: Dict[str, torch.Tensor] = {}
-        for key, length in zip(residual_keys, residual_lengths):
-            chunk = values[cursor : cursor + length]
-            cursor += length
-            if length:
-                residuals[key] = torch.from_numpy(chunk.astype(np.float32))
+        for entry in range(int(entry_starts[row]), int(entry_starts[row]) + int(entry_counts[row])):
+            key = residual_keys[entry]
+            length = int(residual_lengths[entry])
+            ndim = int(residual_ndims[entry]) if entry < len(residual_ndims) else 1
+            shape = [int(size) for size in residual_shapes[entry][:ndim]] or [length]
+            chunk = values[flat_cursor : flat_cursor + length]
+            flat_cursor += length
+            residuals[key] = torch.from_numpy(chunk.astype(np.float32)).reshape(shape)
         lo, hi = int(row_map_offsets[row]), int(row_map_offsets[row + 1])
         row_map = row_map_values[lo:hi].clone() if hi > lo else None
         instances.append(
@@ -148,7 +182,7 @@ def build_bundle(
         indexed templates so the owner sidecar can be built.
     """
 
-    from .manifest import MANIFEST_NAME, SharedDecoder
+    from .manifest import MANIFEST_NAME, SharedDecoder  # noqa: F401 (MANIFEST_NAME used below)
 
     out_root = Path(out_root)
     out_root.mkdir(parents=True, exist_ok=True)
@@ -215,29 +249,44 @@ def build_bundle(
         save_owners(out_root / "owners.npz", owner_id, row_in_owner, sorted(template_rows))
         num_owners = len(template_rows)
 
+    if not shared:
+        raise ValueError(
+            "build_bundle requires the single shared HAC++ decoder weights file "
+            "(the 'shared_mlp.pt' written by the driver's encode command). A "
+            "bundle without it would silently claim a shared decoder that does "
+            "not exist; write an explicit init-only manifest instead."
+        )
+
     manifest = HacppManifest(
         scene_id=scene_id,
         shared_decoder=SharedDecoder(
-            weights=(shared[0] if shared else "hacpp/mlp.pt"),
-            auxiliary=[],
+            weights=shared[0],
+            auxiliary=shared[1:],
             feat_dim=int(backend.get("feat_dim", 50)) if backend else 50,
             n_offsets=int(backend.get("n_offsets", 10)) if backend else 10,
             log2_hashmap_size=int(backend.get("log2_hashmap_size", 19)) if backend else 19,
         ),
         streams=streams,
-        instances={
-            "file": "instances.npz",
-            "count": len(scene.instances),
-            "sh_mode": scene.sh_mode,
-            "scaling_domain": scene.domain_of("scaling"),
-        },
+        instances=InstanceSection(
+            file="instances.npz",
+            count=len(scene.instances),
+            sh_mode=scene.sh_mode,
+            scaling_domain=scene.domain_of("scaling"),
+        ),
         backend=backend or {},
-        notes=notes or ("shared HAC++ decoder: exactly one per scene"),
+        notes=notes
+        or (
+            "shared HAC++ decoder: exactly one per scene; owner ids are "
+            "initialisation labels only (Phase 0)"
+        ),
     )
     manifest.owners.num_owners = num_owners
     manifest.owners.num_anchors = (
         int(scene.static_gaussians["xyz"].shape[0]) if scene.static_gaussians else 0
     )
+    manifest.owners.phase = owner_phase
+    manifest.owners.provenance = owner_provenance
     manifest.validate(root=None)  # structure check before hashing files
     finalize_bundle(out_root, manifest, exclude=(MANIFEST_NAME,))
+    manifest.validate(root=out_root)  # on-disk check after hashing
     return manifest

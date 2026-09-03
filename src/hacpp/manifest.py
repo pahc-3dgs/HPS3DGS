@@ -97,20 +97,39 @@ class OwnerSection:
         return self
 
 
+def _walk_state_keys(node, prefix=""):
+    """Yield every ``module.param`` path inside a (possibly nested) state dict."""
+
+    if isinstance(node, dict):
+        for key, value in node.items():
+            name = "%s.%s" % (prefix, key) if prefix else str(key)
+            yield name
+            yield from _walk_state_keys(value, name)
+    elif isinstance(node, (list, tuple)):
+        for index, value in enumerate(node):
+            name = "%s.%d" % (prefix, index) if prefix else str(index)
+            yield from _walk_state_keys(value, name)
+
+
 def verify_shared_decoder_file(path):
     """Structural check: the shared decoder state must not embed the hash grid.
 
-    Returns the offending keys (empty list means the file is compliant).
+    ``encoding_xyz`` (the hash grid) nested anywhere - top level or inside a
+    sub-module state dict - is rejected. Returns the offending key paths
+    (empty list means the file is compliant).
     """
 
     import torch
 
-    state = torch.load(path, map_location="cpu")
-    if isinstance(state, dict) and not all(hasattr(value, "state_dict") for value in state.values()):
-        keys = list(state.keys())
-    else:  # a plain state dict of tensors
-        keys = list(state.keys())
-    return [key for key in keys if "encoding" in key or "hash" in key]
+    try:
+        state = torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:  # torch < 2.0 has no weights_only
+        state = torch.load(path, map_location="cpu")
+    if not isinstance(state, dict):
+        raise ManifestError("shared decoder file %s is not a state dict" % path)
+    return [
+        key for key in _walk_state_keys(state) if "encoding" in key or "hash" in key
+    ]
 
 
 @dataclass

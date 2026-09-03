@@ -313,12 +313,20 @@ def transform_instance_tensors(
     return output
 
 
-def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | None = None):
+def expand_compact_basis(
+    scene: CompactScene,
+    base: dict[str, torch.Tensor] | None = None,
+    require_residuals: bool = False,
+):
     """Expand the basis into all template instances.
 
     ``base`` may be pre-decoded (e.g. quantised) tensors; when omitted the
-    stored basis is decoded. Per-instance SH is applied according to
-    ``scene.sh_mode`` and never silently discarded.
+    stored basis is decoded. Per-instance appearance follows ``sh_mode`` /
+    ``residual_attributes`` and is never silently discarded.
+
+    ``require_residuals=True`` is the mode a *lossless* claim must decode in:
+    every attribute in ``residual_attributes`` then needs a stored residual,
+    and a missing one raises instead of decoding to a silent zero.
     """
 
     if base is None:
@@ -342,6 +350,11 @@ def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | No
                     "(%d rows)" % (instance.instance_id, instance.template_id, canonical["xyz"].shape[0])
                 )
             canonical = {key: value[rows] for key, value in canonical.items()}
+        elif require_residuals and len(scene.instances) > 0:
+            raise ValueError(
+                "Instance %d has no row_map; a lossless expansion needs the "
+                "deterministic target->template correspondence" % instance.instance_id
+            )
         output = {key: value.clone() for key, value in canonical.items()}
         transform_instance_tensors(
             output,
@@ -369,8 +382,14 @@ def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | No
                 output[key] = instance.residuals[key].to(output[key])
             else:  # residual
                 residual = instance.residuals.get(key)
-                if residual is not None:
-                    output[key] = output[key] + residual.to(output[key])
+                if residual is None:
+                    if require_residuals:
+                        raise ValueError(
+                            "Instance %d is missing the stored %r residual that "
+                            "its lossless claim requires" % (instance.instance_id, key)
+                        )
+                    continue
+                output[key] = output[key] + residual.to(output[key])
         chunks.append(output)
 
     if not chunks:
@@ -381,10 +400,12 @@ def expand_compact_basis(scene: CompactScene, base: dict[str, torch.Tensor] | No
     return {key: torch.cat([chunk[key] for chunk in chunks], dim=0) for key in sorted(keys)}
 
 
-def decode_compact_scene(scene: CompactScene):
+def decode_compact_scene(scene: CompactScene, require_residuals: bool = False):
     """Decode static templates and instances into Gaussian tensor dictionaries."""
 
-    return expand_compact_basis(scene, decode_compact_basis(scene))
+    return expand_compact_basis(
+        scene, decode_compact_basis(scene), require_residuals=require_residuals
+    )
 
 
 def estimate_payload_bytes(payload: Any):
@@ -458,13 +479,27 @@ def compute_instance_residuals(
 
     ``instance_payloads[i]`` holds the world-frame tensors of instance ``i`` as
     they should come out of the decoder (typically the *target* cluster's
-    attributes). The residual is computed against the decoder's own posed
-    template rows, so ``decode_compact_scene(scene)`` plus residuals equals the
-    payload for the listed attributes. Shape mismatches raise - the honest
-    failure mode instead of a silent lossless claim.
+    attributes). Every instance must already carry a ``row_map`` whose length
+    equals its target row count - the posed template chunk is then exactly the
+    gathered rows, and ``decode_compact_scene(scene)`` plus the residual equals
+    the payload for the listed attributes. Anything else raises instead of
+    producing a silent lossless claim.
     """
 
     attributes = attributes or list(scene.residual_attributes)
+    for index, instance in enumerate(scene.instances):
+        if instance.row_map is None:
+            raise ValueError(
+                "Instance %d has no row_map; build the deterministic "
+                "target->template correspondence (nearest_row_map) before "
+                "computing residuals" % instance.instance_id
+            )
+        count = int(instance_payloads[index]["xyz"].shape[0])
+        if int(instance.row_map.numel()) != count:
+            raise ValueError(
+                "Instance %d row_map has %d rows but the target payload has %d"
+                % (instance.instance_id, int(instance.row_map.numel()), count)
+            )
     expanded = expand_compact_basis(scene, base)
     cursor = int(scene.static_gaussians["xyz"].shape[0]) if scene.static_gaussians else 0
     for index, instance in enumerate(scene.instances):
