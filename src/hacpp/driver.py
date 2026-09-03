@@ -226,7 +226,38 @@ def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration
     gaussians.update_anchor_bound()
     # Match HAC++ train.py evaluation (render_sets calls gaussians.eval()).
     gaussians.eval()
+    # The hash-grid normalization x_bound is a training-time constant: train.py
+    # computes it with update_anchor_bound() at step 10000 and only persists it
+    # into <model>/bitstreams/ when it encodes.  The anchors saved in the PLY can
+    # densify/grow afterwards, so recomputing x_bound from them yields a slightly
+    # different normalization that inflates the arithmetic-coded feat/scaling/
+    # offsets streams (~1.7x).  Prefer the persisted training-time value.
+    _restore_training_x_bound(gaussians, model_path)
     return scene, gaussians, dataset, pipe
+
+
+def _restore_training_x_bound(gaussians, model_path):
+    """Override the anchor-derived x_bound with train.py's persisted value.
+
+    ``train.py`` writes ``<model_path>/bitstreams/{x_bound_min,x_bound_max}.pkl``
+    during its run_codec evaluation.  Those tensors carry the normalization the
+    hash grid was actually trained with.  Missing/unreadable files fall back to
+    the freshly-computed bound.
+    """
+
+    import torch
+
+    base = os.path.join(os.path.abspath(model_path), "bitstreams")
+    for attr in ("x_bound_min", "x_bound_max"):
+        path = os.path.join(base, attr + ".pkl")
+        if not os.path.exists(path):
+            continue
+        try:
+            value = torch.load(path, map_location=gaussians.get_anchor.device)
+            if torch.is_tensor(value):
+                setattr(gaussians, attr, value.to(gaussians.get_anchor.device))
+        except Exception:  # noqa: BLE001 - fall back to the computed bound
+            continue
 
 
 def load_chkpnt_fallback(hacpp_root, model_path, source_path, device):
