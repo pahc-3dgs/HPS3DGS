@@ -287,7 +287,37 @@ def shared_decoder_has_no_hash(path):
     return offending
 
 
-def _render_psnr(scene, gaussians, pipe, device, split="test", max_cameras=None):
+#: Tested-incompatibility note (zxa1-12_init, May-7 checkpoint, voxel_size
+#: 0.001, 97,744 anchors / ~233k generated Gaussians): rendering under
+#: torch 2.4.1+cu121 - with either the environment's diff_gaussian_rasterization
+#: or a fresh build of the HAC++ submodule - makes the rasterizer allocate
+#: ~25 GiB for the (gaussian, tile) binning buffer and OOM on a 24 GB card,
+#: while the same checkpoint renders 19 test views at PSNR 43.066 in the
+#: documented HAC_env (python 3.7.13 / torch 1.12.1 / cu116). Encoding is NOT
+#: affected. This is an observation about this extension/checkpoint pair, not a
+#: claim about torch 2.x in general.
+TORCH2_RENDER_WARNING = (
+    "torch %s with this HAC++ rasterizer/checkpoint: rendering reproduced a "
+    "25.17 GiB binning allocation + OOM on zxa1-12_init (voxel_size 0.001). "
+    "The documented runtime is HAC_env: python 3.7.13 / torch 1.12.1+cu116 "
+    "(see docs/HACPP_RUNTIME.md). Continuing anyway - pass --allow-torch2-render "
+    "to silence this check."
+)
+
+
+def _check_render_runtime(allow: bool = False):
+    import torch
+
+    if torch.__version__.startswith("1."):
+        return None
+    message = TORCH2_RENDER_WARNING % torch.__version__
+    if not allow:
+        raise RuntimeError(message + " (raised, not allowed)")
+    sys.stderr.write("WARNING: %s\n" % message)
+    return message
+
+
+def _render_psnr(scene, gaussians, pipe, device, split="test", max_cameras=None, allow_torch2=False):
     """Render the requested split (test preferred, explicit train fallback)."""
 
     import torch
@@ -364,13 +394,13 @@ def cmd_decode(args):
     payload = {"ok": True}
     if args.render:
         payload["render_full"] = _render_psnr(
-            scene, gaussians, pipe, args.device, "test", args.max_cameras
+            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
         )
     log_info = gaussians.conduct_decoding(pre_path_name=args.bitstream_dir)
     payload["log"] = log_info
     if args.render:
         payload["render_decoded"] = _render_psnr(
-            scene, gaussians, pipe, args.device, "test", args.max_cameras
+            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
         )
     _json_print(payload)
     return 0
@@ -383,7 +413,9 @@ def cmd_render(args):
     )
     payload = {
         "ok": True,
-        "full": _render_psnr(scene, gaussians, pipe, args.device, "test", args.max_cameras),
+        "full": _render_psnr(
+            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
+        ),
     }
     _json_print(payload)
     return 0
@@ -408,11 +440,13 @@ def main(argv=None):
     decode.add_argument("--source-path", default=None)
     decode.add_argument("--render", action="store_true")
     decode.add_argument("--max-cameras", type=int, default=None)
+    decode.add_argument("--allow-torch2-render", action="store_true")
 
     render_cmd = sub.add_parser("render")
     render_cmd.add_argument("--model-path", required=True)
     render_cmd.add_argument("--source-path", default=None)
     render_cmd.add_argument("--max-cameras", type=int, default=None)
+    render_cmd.add_argument("--allow-torch2-render", action="store_true")
 
     args = parser.parse_args(argv)
     handlers = {
