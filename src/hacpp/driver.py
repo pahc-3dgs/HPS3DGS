@@ -121,7 +121,16 @@ def _torch_load(path, device):
 
 
 def _dataset_args(model_path, source_path):
-    """Build the HAC++ ModelParams/PipelineParams namespace trio."""
+    """Build the HAC++ ModelParams/PipelineParams namespace trio.
+
+    ``ModelParams`` hard-codes ``voxel_size=0.08``, but a model trained with
+    ``--voxel_size 0.005`` records the true value in the ``cfg_args`` file that
+    ``train.py`` writes next to the checkpoint (and ``get_combined_args`` reads
+    it back).  Without that step the driver quantizes every anchor to an 8 cm
+    grid, which collapses the compressed anchor stream and destroys the decoded
+    representation.  Mirror ``get_combined_args`` here instead of re-parsing
+    only ``-s/-m``.
+    """
 
     from arguments import ModelParams, OptimizationParams, PipelineParams
 
@@ -131,6 +140,16 @@ def _dataset_args(model_path, source_path):
     optimization_params = OptimizationParams(parser)
     argv = ["-s", os.path.abspath(source_path or model_path), "-m", os.path.abspath(model_path)]
     args = parser.parse_args(argv)
+    cfg_path = os.path.join(os.path.abspath(model_path), "cfg_args")
+    try:
+        with open(cfg_path) as cfg_file:
+            cfg = eval(cfg_file.read(), {"Namespace": argparse.Namespace})  # noqa: S307 - trusted model dir
+        for key, value in vars(cfg).items():
+            if hasattr(args, key):
+                setattr(args, key, value)
+    except (OSError, NameError, SyntaxError, TypeError):
+        # No/unsupported cfg_args: fall back to the defaults above.
+        pass
     return model_params.extract(args), pipeline_params.extract(args), optimization_params.extract(args)
 
 
@@ -178,6 +197,11 @@ def build_gaussians(hacpp_root, dataset, device):
         ste_multistep=cfg["ste_multistep"],
         add_noise=cfg["add_noise"],
         is_synthetic_nerf=os.path.exists(os.path.join(dataset.source_path, "transforms_train.json")),
+        # Match HAC++ train.py's render_sets/run_codec path: the checkpoint stores
+        # _scaling/_anchor/_mask in their already-(de)compressed form, so
+        # get_scaling/get_anchor/get_mask must NOT re-apply exp()/voxel rounding/
+        # sigmoid STE. decoded_version=True is the reference rendering mode.
+        decoded_version=True,
     )
     return gaussians.to(device)
 
@@ -200,6 +224,8 @@ def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration
     # construction.  Scene.load alone leaves them at zero, which makes
     # calc_interp_feat fail before entropy encoding starts.
     gaussians.update_anchor_bound()
+    # Match HAC++ train.py evaluation (render_sets calls gaussians.eval()).
+    gaussians.eval()
     return scene, gaussians, dataset, pipe
 
 
@@ -287,21 +313,19 @@ def shared_decoder_has_no_hash(path):
     return offending
 
 
-#: Tested-incompatibility note (zxa1-12_init, May-7 checkpoint, voxel_size
-#: 0.001, 97,744 anchors / ~233k generated Gaussians): rendering under
-#: torch 2.4.1+cu121 - with either the environment's diff_gaussian_rasterization
-#: or a fresh build of the HAC++ submodule - makes the rasterizer allocate
-#: ~25 GiB for the (gaussian, tile) binning buffer and OOM on a 24 GB card,
-#: while the same checkpoint renders 19 test views at PSNR 43.066 in the
-#: documented HAC_env (python 3.7.13 / torch 1.12.1 / cu116). Encoding is NOT
-#: affected. This is an observation about this extension/checkpoint pair, not a
-#: claim about torch 2.x in general.
+#: Previously mis-diagnosed as a torch-2.x rasterizer incompatibility: rendering
+#: zxa1-12_init reproduced a 25.17 GiB (gaussian, tile) binning allocation + OOM
+#: on a 24 GB card.  The real root cause is NOT the torch version - the driver
+#: constructed GaussianModel with decoded_version=False, so get_scaling applied
+#: exp() to the checkpoint's already-linear _scaling (every Gaussian blew up to
+#: ~1.0 scales).  Fixed by passing decoded_version=True (see build_gaussians);
+#: render_full then matches train.py evaluation.  The torch-2.x path is retained
+#: only as an un-re-verified warning.
 TORCH2_RENDER_WARNING = (
-    "torch %s with this HAC++ rasterizer/checkpoint: rendering reproduced a "
-    "25.17 GiB binning allocation + OOM on zxa1-12_init (voxel_size 0.001). "
-    "The documented runtime is HAC_env: python 3.7.13 / torch 1.12.1+cu116 "
-    "(see docs/HACPP_RUNTIME.md). Continuing anyway - pass --allow-torch2-render "
-    "to silence this check."
+    "torch %s: rendering this HAC++ checkpoint previously reproduced a 25.17 GiB "
+    "binning allocation + OOM (zxa1-12_init). Root cause was decoded_version=False "
+    "re-applying exp() to linear _scaling, not the torch version; decoded_version=True "
+    "fixes render_full to match train.py. Torch 2.x has not been re-verified."
 )
 
 
