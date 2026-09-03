@@ -287,12 +287,12 @@ def shared_decoder_has_no_hash(path):
     return offending
 
 
-def _render_psnr(scene, gaussians, pipe, device, split="test"):
+def _render_psnr(scene, gaussians, pipe, device, split="test", max_cameras=None):
     """Render the requested split (test preferred, explicit train fallback)."""
 
     import torch
 
-    from gaussian_renderer import render
+    from gaussian_renderer import prefilter_voxel, render
 
     if split == "test":
         cameras = scene.getTestCameras()
@@ -300,16 +300,28 @@ def _render_psnr(scene, gaussians, pipe, device, split="test"):
             return {"split": "train_fallback", "views": 0, "psnr": None, "reason": "no test cameras"}
     else:
         cameras = scene.getTrainCameras()
+    total = len(cameras)
+    if max_cameras:
+        cameras = cameras[: int(max_cameras)]
     background = torch.tensor([0, 0, 0], dtype=torch.float32, device=device)
     psnr_sum, count = 0.0, 0
     for cam in cameras:
         with torch.no_grad():
-            image = render(cam, gaussians, pipe, background)["render"].clamp(0, 1)
+            # Match HAC++ train.py evaluation: select visible anchors before
+            # expanding their offsets into rasterized Gaussians.
+            visible_mask = prefilter_voxel(cam, gaussians, pipe, background)
+            image = render(cam, gaussians, pipe, background, visible_mask=visible_mask)["render"].clamp(0, 1)
         target = cam.original_image.to(device).clamp(0, 1)
         mse = torch.mean((image - target) ** 2).item()
         psnr_sum += -10.0 * math.log10(max(mse, 1e-12))
         count += 1
-    return {"split": split, "views": count, "psnr": psnr_sum / max(count, 1)}
+    return {
+        "split": split,
+        "views": count,
+        "views_total_in_split": total,
+        "truncated": bool(max_cameras and count < total),
+        "psnr": psnr_sum / max(count, 1),
+    }
 
 
 def _gpcc_mode():
@@ -351,11 +363,15 @@ def cmd_decode(args):
         raise FileNotFoundError("bitstream dir not found: %s" % args.bitstream_dir)
     payload = {"ok": True}
     if args.render:
-        payload["render_full"] = _render_psnr(scene, gaussians, pipe, args.device, "test")
+        payload["render_full"] = _render_psnr(
+            scene, gaussians, pipe, args.device, "test", args.max_cameras
+        )
     log_info = gaussians.conduct_decoding(pre_path_name=args.bitstream_dir)
     payload["log"] = log_info
     if args.render:
-        payload["render_decoded"] = _render_psnr(scene, gaussians, pipe, args.device, "test")
+        payload["render_decoded"] = _render_psnr(
+            scene, gaussians, pipe, args.device, "test", args.max_cameras
+        )
     _json_print(payload)
     return 0
 
@@ -365,7 +381,10 @@ def cmd_render(args):
     scene, gaussians, _dataset, pipe = load_hacpp_scene(
         args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
     )
-    payload = {"ok": True, "full": _render_psnr(scene, gaussians, pipe, args.device, "test")}
+    payload = {
+        "ok": True,
+        "full": _render_psnr(scene, gaussians, pipe, args.device, "test", args.max_cameras),
+    }
     _json_print(payload)
     return 0
 
@@ -388,10 +407,12 @@ def main(argv=None):
     decode.add_argument("--bitstream-dir", required=True)
     decode.add_argument("--source-path", default=None)
     decode.add_argument("--render", action="store_true")
+    decode.add_argument("--max-cameras", type=int, default=None)
 
     render_cmd = sub.add_parser("render")
     render_cmd.add_argument("--model-path", required=True)
     render_cmd.add_argument("--source-path", default=None)
+    render_cmd.add_argument("--max-cameras", type=int, default=None)
 
     args = parser.parse_args(argv)
     handlers = {
