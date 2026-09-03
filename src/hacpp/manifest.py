@@ -15,7 +15,7 @@ Layout::
         scaling_*.b, offsets_*.b
         hash.b                   # binary hash-grid embeddings
         masks.b
-        mlp.pt                   # shared decoder weights (optionally quantised)
+        shared_mlp.pt            # shared decoder weights; excludes hash grid
       owners.npz                 # anchor -> (owner/template id, row index)
       instances.npz              # template_id + quat + t + scale (+ residuals)
       render_config.json

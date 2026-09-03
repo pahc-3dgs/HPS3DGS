@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""In-process HAC++ driver, executed by :mod:`pahc.hacpp.bridge`.
+"""Standalone HAC++ driver, executed by :mod:`src.hacpp.bridge`.
 
 Run as::
 
-    python -m pahc.hacpp.driver --hacpp-root /path/to/HAC++ <command> ...
+    python src/hacpp/driver.py --hacpp-root /path/to/HAC++ <command> ...
 
 ``--hacpp-root`` is inserted at ``sys.path[0]`` *before* any HAC++ import so
 that ``import scene`` / ``import gaussian_renderer`` resolve to the HAC++
