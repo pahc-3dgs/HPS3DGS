@@ -92,10 +92,16 @@ def cmd_inspect(args):
             report["modules"][name] = {"ok": False, "error": "%s: %s" % (type(exc).__name__, exc)}
     report["tmc3"] = shutil.which("tmc3")
     if report["tmc3"] is None:
+        # utils/gpcc_utils.py in this reference falls back to raw numpy anchor
+        # storage when tmc3 is absent (NUMPY: prefix). Encode still runs; the
+        # anchor stream is simply not GPCC-compressed, and must be reported.
         report["modules"]["tmc3 (GPCC)"] = {
-            "ok": False,
-            "error": "tmc3 binary not on PATH; anchor GPCC coding will fail",
+            "ok": True,
+            "fallback": "raw numpy anchor storage (utils/gpcc_utils.py 'NUMPY:' mode)",
         }
+        report["gpcc_mode"] = "numpy_fallback"
+    else:
+        report["gpcc_mode"] = "gpcc"
     missing = [name for name, info in report["modules"].items() if not info["ok"]]
     report["ready_for_encode"] = not missing
     report["missing"] = missing
@@ -128,13 +134,32 @@ def _dataset_args(model_path, source_path):
     return model_params.extract(args), pipeline_params.extract(args), optimization_params.extract(args)
 
 
-def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration=-1, ply_path=None):
-    """Construct the HAC++ scene exactly like ``train.py`` does."""
+#: Hash-grid hyperparameters. ``cfg_args`` does not record them and they are
+#: *not* GaussianModel defaults: HAC++ ``train.py`` passes ``--n_features 4
+#: --log2 13 --log2_2D 15`` by default, and those are the values every model in
+#: this reference checkout was trained with (verified by param-shape algebra:
+#: 3D grid = 18^3 + 11*2^13 = 95944 rows x 4 feats, 2D = 130^2 + 3*2^15 =
+#: 115208 rows x 4 feats). Override with --n-features/--log2/--log2-2d only for
+#: models trained with different flags; a mismatch fails at load time with a
+#: size error, it never silently loads.
+ENCODING_CONFIG = {
+    "n_features_per_level": 4,
+    "log2_hashmap_size": 13,
+    "log2_hashmap_size_2D": 15,
+    "resolutions_list": (18, 24, 33, 44, 59, 80, 108, 148, 201, 275, 376, 514),
+    "resolutions_list_2D": (130, 258, 514, 1026),
+    "use_2D": True,
+    "ste_binary": True,
+    "ste_multistep": False,
+    "add_noise": False,
+}
 
-    from scene import Scene
+
+def build_gaussians(hacpp_root, dataset, device):
     from scene.gaussian_model import GaussianModel
 
-    dataset, pipe, _opt = _dataset_args(model_path, source_path)
+    cfg = dict(ENCODING_CONFIG)
+    cfg.update({key: value for key, value in getattr(build_gaussians, "overrides", {}).items() if value})
     gaussians = GaussianModel(
         dataset.feat_dim,
         dataset.n_offsets,
@@ -143,8 +168,27 @@ def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration
         dataset.update_init_factor,
         dataset.update_hierachy_factor,
         dataset.use_feat_bank,
+        n_features_per_level=cfg["n_features_per_level"],
+        log2_hashmap_size=cfg["log2_hashmap_size"],
+        log2_hashmap_size_2D=cfg["log2_hashmap_size_2D"],
+        resolutions_list=tuple(cfg["resolutions_list"]),
+        resolutions_list_2D=tuple(cfg["resolutions_list_2D"]),
+        use_2D=cfg["use_2D"],
+        ste_binary=cfg["ste_binary"],
+        ste_multistep=cfg["ste_multistep"],
+        add_noise=cfg["add_noise"],
+        is_synthetic_nerf=os.path.exists(os.path.join(dataset.source_path, "transforms_train.json")),
     )
-    gaussians = gaussians.to(device)
+    return gaussians.to(device)
+
+
+def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration=-1, ply_path=None):
+    """Construct the HAC++ scene exactly like ``train.py`` does."""
+
+    from scene import Scene
+
+    dataset, pipe, _opt = _dataset_args(model_path, source_path)
+    gaussians = build_gaussians(hacpp_root, dataset, device)
     scene = Scene(
         dataset,
         gaussians,
@@ -152,6 +196,10 @@ def load_hacpp_scene(hacpp_root, model_path, source_path, device, load_iteration
         shuffle=False,
         ply_path=ply_path,
     )
+    # train.py initializes the interpolation bounds immediately after Scene
+    # construction.  Scene.load alone leaves them at zero, which makes
+    # calc_interp_feat fail before entropy encoding starts.
+    gaussians.update_anchor_bound()
     return scene, gaussians, dataset, pipe
 
 
@@ -264,6 +312,12 @@ def _render_psnr(scene, gaussians, pipe, device, split="test"):
     return {"split": split, "views": count, "psnr": psnr_sum / max(count, 1)}
 
 
+def _gpcc_mode():
+    import shutil
+
+    return "gpcc" if shutil.which("tmc3") else "numpy_fallback"
+
+
 def cmd_encode(args):
     _prepend_hacpp_root(args.hacpp_root)
     scene, gaussians, _dataset, _pipe = load_hacpp_scene(
@@ -277,6 +331,7 @@ def cmd_encode(args):
         "ok": True,
         "out_dir": os.path.abspath(args.out_dir),
         "log": log_info,
+        "gpcc_mode": _gpcc_mode(),
         "shared_decoder": {
             "weights": "shared_mlp.pt",
             "keys": sorted(state.keys()),
