@@ -64,6 +64,8 @@ def compression_report(
         # Backwards compatible alias for the actual size.
         actual_bytes = int(final_bytes)
     if actual_bytes is None:
+        if estimated_tensor_bytes is None:
+            estimated_tensor_bytes = final_count * (3 + 3 + 45 + 1 + 3 + 4) * 4
         actual_bytes = estimated_tensor_bytes
 
     report = {

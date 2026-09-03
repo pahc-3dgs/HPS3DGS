@@ -151,7 +151,12 @@ def expand_instance_anchors(
 
     if raw_offsets.dim() == 2:
         raw_offsets = raw_offsets.unsqueeze(1)
-        voxel_scaling_c = voxel_scaling_c.unsqueeze(1)
+    if raw_offsets.dim() != 3 or raw_offsets.shape[-1] != 3:
+        raise ValueError("raw_offsets must have shape [N, K, 3] or [N, 3]")
+    if voxel_scaling_c.dim() != 2 or voxel_scaling_c.shape[-1] != 3:
+        raise ValueError("voxel_scaling_c must have shape [N, 3]")
+    if raw_offsets.shape[0] != voxel_scaling_c.shape[0]:
+        raise ValueError("raw_offsets and voxel_scaling_c must share N")
     offsets_c = raw_offsets * voxel_scaling_c.unsqueeze(1)  # [N, K, 3]
     A, b = affine_from_instance(center, rotation, translation, scale)
     anchor_w = anchor_c @ A.t() + b  # [N, 3]

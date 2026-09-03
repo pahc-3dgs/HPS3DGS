@@ -18,8 +18,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 import torch
 import torch.nn as nn
@@ -161,12 +166,14 @@ def build_compact_scene(gaussians, result, appearance_cfg, sh_mode="residual"):
             )
         )
         # Target-cluster tensors: what the decoder must reproduce.
-        iso_scale = torch.abs(transform.scale_factor).expand(3).unsqueeze(0)
         target_payloads.append(
             {
                 "xyz": gaussians._xyz[tgt_mask].detach(),
                 "rotation": gaussians._rotation[tgt_mask].detach(),
-                "scaling": gaussians._scaling[tgt_mask].detach() + torch.log(iso_scale),
+                # Target tensors are already stored in the world-frame 3DGS
+                # parameter domain. Instance log-scale is applied to the posed
+                # template, not to the target a second time.
+                "scaling": gaussians._scaling[tgt_mask].detach(),
                 "opacity": gaussians._opacity[tgt_mask].detach(),
                 "features_dc": gaussians._features_dc[tgt_mask].detach(),
                 "features_rest": gaussians._features_rest[tgt_mask].detach(),
@@ -203,9 +210,13 @@ def build_compact_scene(gaussians, result, appearance_cfg, sh_mode="residual"):
     residual_attributes = [name for name in ("features_dc", "features_rest") if sh_mode != "zero" or name != "features_rest"]
     if sh_mode == "zero":
         residual_attributes = ["features_dc"]
+    static_gaussians = {"xyz": gaussians._xyz.detach().cpu()}
+    for name, values in attributes.items():
+        if name not in quantized_names:
+            static_gaussians[name] = values.detach().cpu()
     compact = CompactScene(
         templates=templates,
-        static_gaussians={"xyz": gaussians._xyz.detach().cpu()},
+        static_gaussians=static_gaussians,
         instances=instances,
         codebooks=codebook_payload(codebooks),
         metadata={},
@@ -229,6 +240,7 @@ def build_compact_scene(gaussians, result, appearance_cfg, sh_mode="residual"):
         "sh_mode": sh_mode,
         "residual_attributes": list(residual_attributes),
         "lossless_attributes": lossless_attributes(compact),
+        "lossless_appearance": sh_mode in ("residual", "full"),
         "row_map_rows": [int(instance.row_map.numel()) for instance in instances],
         "residual_tensors_bytes": int(
             sum(
@@ -416,10 +428,13 @@ def main():
     report["estimated_tensor_bytes_note"] = (
         "in-memory tensor estimate; the compressed size is bitstream_bytes"
     )
-    compact.metadata["compression_report"] = report
-    save_compact_scene(compact, args.output)
+    # Do not embed a file-size report into the file it measures: doing so makes
+    # the reported byte count stale immediately. Keep it in a sidecar instead.
+    metrics_path = Path(str(args.output) + ".metrics.json")
+    metrics_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"compression_report": report}, indent=2))
     print(f"Saved compact scene to {args.output}")
+    print(f"Saved size report to {metrics_path}")
     return 0
 
 

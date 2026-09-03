@@ -11,9 +11,9 @@ outputs/
 runs/
 wandb/
 test/
-tests/
+tests/_artifacts/
 logs/
-docs/
+docs/_build/
 
 *.pth
 *.pt

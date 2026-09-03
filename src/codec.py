@@ -216,7 +216,10 @@ def save_compact_scene(scene: CompactScene, path: str | Path):
 def load_compact_scene(path: str | Path, map_location: str | torch.device = "cpu"):
     """Load a compact scene saved by :func:`save_compact_scene`."""
 
-    payload = torch.load(path, map_location=map_location, weights_only=False)
+    try:
+        payload = torch.load(path, map_location=map_location, weights_only=False)
+    except TypeError:  # torch 1.x has no weights_only argument
+        payload = torch.load(path, map_location=map_location)
     return CompactScene.from_payload(payload)
 
 
@@ -487,6 +490,11 @@ def compute_instance_residuals(
     """
 
     attributes = attributes or list(scene.residual_attributes)
+    if len(instance_payloads) != len(scene.instances):
+        raise ValueError(
+            "instance payload count %d does not match instance count %d"
+            % (len(instance_payloads), len(scene.instances))
+        )
     for index, instance in enumerate(scene.instances):
         if instance.row_map is None:
             raise ValueError(
@@ -500,24 +508,36 @@ def compute_instance_residuals(
                 "Instance %d row_map has %d rows but the target payload has %d"
                 % (instance.instance_id, int(instance.row_map.numel()), count)
             )
-    expanded = expand_compact_basis(scene, base)
-    cursor = int(scene.static_gaussians["xyz"].shape[0]) if scene.static_gaussians else 0
+    decoded_base = decode_compact_basis(scene) if base is None else base
     for index, instance in enumerate(scene.instances):
         payload = instance_payloads[index]
-        count = int(payload["xyz"].shape[0])
-        start = cursor + sum(int(p["xyz"].shape[0]) for p in instance_payloads[:index])
+        canonical = template_tensors(scene, instance.template_id, decoded_base)
+        rows = instance.row_map.to(torch.long).reshape(-1)
+        canonical = {key: value[rows] for key, value in canonical.items()}
+        posed_tensors = {key: value.clone() for key, value in canonical.items()}
+        transform_instance_tensors(
+            posed_tensors,
+            instance.rotation,
+            instance.translation,
+            instance.scale,
+            instance.center,
+            scaling_domains=scene.scaling_domains,
+        )
         for attribute in attributes:
             if attribute not in payload:
                 continue
             target = payload[attribute].detach()
-            posed = expanded[attribute][start : start + count]
+            posed = posed_tensors[attribute]
             if posed.shape != target.shape:
                 raise ValueError(
                     "Instance %d: posed template %s != target %s for %r; cannot "
                     "claim a lossless residual without a valid row_map"
                     % (instance.instance_id, tuple(posed.shape), tuple(target.shape), attribute)
                 )
-            instance.residuals[attribute] = (target - posed).detach().cpu()
+            if scene.sh_mode == "full":
+                instance.residuals[attribute] = target.detach().cpu()
+            else:
+                instance.residuals[attribute] = (target - posed).detach().cpu()
     return scene
 
 

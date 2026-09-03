@@ -32,7 +32,10 @@ from src.hacpp.export import export_hacpp_init, load_init  # noqa: E402
 def _load_basis(path: Path):
     """Load a PAHC CompactScene (.pahc.pt) or a raw tensor dict (.pt)."""
 
-    payload = torch.load(path, map_location="cpu", weights_only=False)
+    try:
+        payload = torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:
+        payload = torch.load(path, map_location="cpu")
     if isinstance(payload, dict) and "static_gaussians" in payload:
         from src.codec import CompactScene
 

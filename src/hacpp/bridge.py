@@ -2,7 +2,7 @@
 
 Why a subprocess: both SegAnyGaussians and HAC++ expose top-level packages
 named ``scene`` and ``gaussian_renderer``. Importing both in one process is a
-name collision, so the bridge launches ``python -m pahc.hacpp.driver`` with the
+name collision, so the bridge launches the standalone ``driver.py`` with the
 HAC++ root at ``sys.path[0]`` and exchanges JSON on stdout.
 
 What this bridge *does*:
@@ -87,8 +87,7 @@ class HacppBridge:
         env["PYTHONPATH"] = str(repo_root) + os.pathsep + env["PYTHONPATH"]
         return [
             self.python_exe,
-            "-m",
-            "pahc.hacpp.driver",
+            str(repo_root / "src" / "hacpp" / "driver.py"),
             "--hacpp-root",
             str(self.hacpp_root),
             "--device",
@@ -125,29 +124,31 @@ class HacppBridge:
 
         return self.run("inspect")
 
-    def encode(self, model_path: str | Path, out_dir: str | Path):
+    def encode(self, model_path: str | Path, out_dir: str | Path, source_path: str | Path | None = None):
         """Encode a trained HAC++ model; ``out_dir`` receives the raw streams."""
 
-        return self.run(
-            "encode",
-            ["--model-path", str(model_path), "--out-dir", str(out_dir)],
-        )
+        extra = ["--model-path", str(model_path), "--out-dir", str(out_dir)]
+        if source_path is not None:
+            extra += ["--source-path", str(source_path)]
+        return self.run("encode", extra)
 
-    def decode(self, model_path: str | Path, bitstream_dir: str | Path, render: bool = False):
+    def decode(self, model_path: str | Path, bitstream_dir: str | Path, render: bool = False, source_path: str | Path | None = None):
         extra = [
             "--model-path",
             str(model_path),
             "--bitstream-dir",
             str(bitstream_dir),
         ]
+        if source_path is not None:
+            extra += ["--source-path", str(source_path)]
         if render:
-            extra.append("--render-out")
+            extra.append("--render")
         return self.run("decode", extra)
 
-    def render(self, model_path: str | Path, decoded: bool = False):
+    def render(self, model_path: str | Path, source_path: str | Path | None = None):
         extra = ["--model-path", str(model_path)]
-        if decoded:
-            extra.append("--decoded")
+        if source_path is not None:
+            extra += ["--source-path", str(source_path)]
         return self.run("render", extra)
 
     def requires_trained_student(self):
