@@ -501,8 +501,15 @@ def global_distribution_alignment(
     return loss_dict
 
 
-def build_instance_payloads(gaussians: Any, alignments):
-    """Build transformed instance payloads and the mask of replaced primitives."""
+def build_instance_payloads(gaussians: Any, alignments, keep_appearance: bool = True):
+    """Build transformed instance payloads and the mask of replaced primitives.
+
+    The payload holds the *world-frame* appearance of the instance, i.e. the
+    source cluster's attributes after the refined pose. ``keep_appearance``
+    controls whether ``features_rest`` is carried (lossless) or dropped
+    (``dc_only``); dropping must be recorded in the payload metadata by the
+    caller, it is not silently done here.
+    """
 
     pts_to_remove_mask = torch.zeros(gaussians._xyz.shape[0], dtype=torch.bool, device=gaussians._xyz.device)
     payloads = []
@@ -520,7 +527,11 @@ def build_instance_payloads(gaussians: Any, alignments):
                     "scaling": gaussians._scaling[src_mask] * iso_scale,
                     "opacity": gaussians._opacity[src_mask].clone(),
                     "features_dc": gaussians._features_dc[src_mask].clone(),
-                    "features_rest": torch.zeros_like(gaussians._features_rest[src_mask]),
+                    "features_rest": (
+                        gaussians._features_rest[src_mask].clone()
+                        if keep_appearance
+                        else torch.zeros_like(gaussians._features_rest[src_mask])
+                    ),
                 }
             )
         pts_to_remove_mask = pts_to_remove_mask | tgt_mask
@@ -625,7 +636,9 @@ def refine_matched_components(
             alignment["refit_metric"] = final_metric
             alignment["refit_loss_history"] = loss_history
 
-    pts_to_remove_mask, payloads = build_instance_payloads(gaussians, alignments)
+    pts_to_remove_mask, payloads = build_instance_payloads(
+        gaussians, alignments, keep_appearance=keep_appearance
+    )
     return alignments, pts_to_remove_mask, payloads
 
 
