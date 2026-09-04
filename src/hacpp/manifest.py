@@ -11,6 +11,8 @@ Layout::
       manifest.json
       hacpp/                     # raw HAC++ encoder output
         xyz_gpcc.npz             # anchors (GPCC, Morton order)
+        x_bound_min.pkl          # training-time hash-grid normalisation bounds
+        x_bound_max.pkl          #   (consumed by conduct_decoding)
         feat_0_*.b ...           # anchor feature bitstreams
         scaling_*.b, offsets_*.b
         hash.b                   # binary hash-grid embeddings
@@ -28,15 +30,61 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List
 
-MANIFEST_VERSION = "0.2"
+MANIFEST_VERSION = "0.3"
 MANIFEST_NAME = "manifest.json"
+DECODER_CONFIG_FILE = "hacpp/decoder_config.json"
+SUPPORTED_MANIFEST_VERSIONS = ("0.3",)
 
 #: Relative paths HAC++ writes for a single scene.
 HACPP_STREAM_FILES = {
     "anchor": "hacpp/xyz_gpcc.npz",
     "hash": "hacpp/hash.b",
     "masks": "hacpp/masks.b",
+    "x_bound_min": "hacpp/x_bound_min.pkl",
+    "x_bound_max": "hacpp/x_bound_max.pkl",
 }
+
+#: A self-contained (``codec_only``) bundle must carry *all* of these, plus at
+#: least one arithmetic-coded stream of each family (feat/scaling/offsets).
+#: ``conduct_decoding`` reads exactly this set from ``pre_path_name``; a bundle
+#: missing any of them cannot be decoded without going back to the original
+#: model directory.
+CODEC_REQUIRED_FILES = {
+    **HACPP_STREAM_FILES,
+    "shared_decoder": "hacpp/shared_mlp.pt",
+}
+
+#: Keys that must be present in ``decoder_config`` for a reader to instantiate
+#: a ``GaussianModel`` without access to the original model directory
+#: (architecture/hyper-parameters; cfg_args alone is not enough because the
+#: hash-grid flags are not recorded there).
+DECODER_CONFIG_REQUIRED_KEYS = (
+    "config_version",
+    "feat_dim",
+    "n_offsets",
+    "voxel_size",
+    "update_depth",
+    "update_init_factor",
+    "update_hierachy_factor",
+    "use_feat_bank",
+    "n_features_per_level",
+    "log2_hashmap_size",
+    "log2_hashmap_size_2D",
+    "resolutions_list",
+    "resolutions_list_2D",
+    "use_2D",
+    "ste_binary",
+    "ste_multistep",
+    "add_noise",
+    "decoded_version",
+    "white_background",
+    "is_synthetic_nerf",
+    "eval",
+    "all_views_train_test",
+    "Q",
+    "dtype",
+    "shared_decoder_parameter_bytes",
+)
 
 
 class ManifestError(ValueError):
@@ -56,7 +104,10 @@ class SharedDecoder:
     excludes_hash: bool = True
     feat_dim: int = 50
     n_offsets: int = 10
-    log2_hashmap_size: int = 19
+    # Defaults mirror the driver's ENCODING_CONFIG (HAC++ train.py flags), not
+    # the GaussianModel constructor defaults, which are different (19/17).
+    log2_hashmap_size: int = 13
+    log2_hashmap_size_2D: int = 15
     note: str = "one shared decoder per scene; templates must not instantiate MLPs"
 
     def validate(self):
@@ -132,6 +183,49 @@ def verify_shared_decoder_file(path):
     ]
 
 
+def validate_shared_decoder_file(path, use_feat_bank: bool = False):
+    """Validate module coverage and return raw tensor bytes for accounting."""
+
+    import torch
+
+    try:
+        state = torch.load(path, map_location="cpu", weights_only=False)
+    except TypeError:
+        state = torch.load(path, map_location="cpu")
+    if not isinstance(state, dict):
+        raise ManifestError("shared decoder file %s is not a state dict" % path)
+    offending = [
+        key for key in _walk_state_keys(state) if "encoding" in key or "hash" in key
+    ]
+    if offending:
+        raise ManifestError(
+            "shared decoder file %s embeds forbidden hash/encoding state: %s"
+            % (path, offending)
+        )
+    required = {
+        "opacity_mlp", "cov_mlp", "color_mlp", "grid_mlp", "deform_mlp"
+    }
+    if use_feat_bank:
+        required.add("mlp_feature_bank")
+    missing = sorted(required - set(state))
+    extra = sorted(set(state) - required)
+    if missing or extra:
+        raise ManifestError(
+            "shared decoder modules mismatch: missing=%s extra=%s"
+            % (missing, extra)
+        )
+
+    tensor_bytes = 0
+    for module_name, module_state in state.items():
+        if not isinstance(module_state, dict):
+            raise ManifestError("shared decoder module %s is not a state dict" % module_name)
+        for value in module_state.values():
+            if not torch.is_tensor(value):
+                raise ManifestError("shared decoder module %s contains a non-tensor value" % module_name)
+            tensor_bytes += value.numel() * value.element_size()
+    return int(tensor_bytes)
+
+
 @dataclass
 class InstanceSection:
     file: str = "instances.npz"
@@ -151,6 +245,20 @@ class HacppManifest:
     instances: InstanceSection = field(default_factory=InstanceSection)
     files: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     backend: Dict[str, Any] = field(default_factory=dict)
+    #: Architecture needed to rebuild the HAC++ ``GaussianModel`` at decode
+    #: time without the original model directory (see
+    #: ``DECODER_CONFIG_REQUIRED_KEYS``).
+    decoder_config: Dict[str, Any] = field(default_factory=dict)
+    #: Actual on-disk accounting (never estimates):
+    #: ``codec_stream_bytes/_mib`` - physical HAC++ encoder-output files,
+    #: ``paper_total_bytes/_mib`` - encoded streams + 24 raw bound bytes + raw
+    #: float32 MLP parameters (the HAC++ paper/log convention),
+    #: ``shared_decoder_bytes/_mib`` - physical ``shared_mlp.pt`` serialization,
+    #: ``artifact_bytes/_mib`` - the whole bundle directory, manifest included.
+    storage: Dict[str, Any] = field(default_factory=dict)
+    #: True for a single-scene HAC++ codec bundle that carries no PAHC
+    #: owners/instances sidecars; the owner contract is then not applicable.
+    codec_only: bool = False
     notes: str = ""
 
     def to_dict(self):
@@ -173,6 +281,9 @@ class HacppManifest:
             instances=instances,
             files=data.get("files", {}),
             backend=data.get("backend", {}),
+            decoder_config=data.get("decoder_config", {}),
+            storage=data.get("storage", {}),
+            codec_only=bool(data.get("codec_only", False)),
             notes=data.get("notes", ""),
         )
 
@@ -185,22 +296,37 @@ class HacppManifest:
 
         With ``root=None`` only the structural contract is checked (used before
         files are hashed); with a ``root`` every declared file must exist with
-        the recorded size.
+        the recorded size (and checksum, when ``verify_checksums``).
+
+        Version contract: only manifests written by this code (``0.3``) are
+        accepted; older bundles lack ``decoder_config`` and the x_bound streams
+        and cannot be decoded self-contained, so they fail loudly instead of
+        half-working.
         """
 
+        if self.version not in SUPPORTED_MANIFEST_VERSIONS:
+            raise ManifestError(
+                "unsupported manifest version %r (supported: %s); re-encode the "
+                "bundle - older manifests are not self-contained"
+                % (self.version, ", ".join(SUPPORTED_MANIFEST_VERSIONS))
+            )
         self.shared_decoder.validate()
-        self.owners.validate()
-        if self.owners.num_owners <= 0:
-            raise ManifestError("bundle must declare at least one owner/template")
-        if self.instances.count > 0 and self.owners.num_owners <= 0:
-            raise ManifestError("instances require owners")
+        self._validate_codec_contract()
+        if not self.codec_only:
+            self.owners.validate()
+            if self.owners.num_owners <= 0:
+                raise ManifestError("bundle must declare at least one owner/template")
+            if self.instances.count > 0 and self.owners.num_owners <= 0:
+                raise ManifestError("instances require owners")
 
         expected: Dict[str, str] = {MANIFEST_NAME: ""}
+        expected[DECODER_CONFIG_FILE] = "decoder_config"
         for key, rel in HACPP_STREAM_FILES.items():
             expected[rel] = key
         expected[self.shared_decoder.weights] = "shared_decoder"
-        expected[self.owners.file] = "owners"
-        expected[self.instances.file] = "instances"
+        if not self.codec_only:
+            expected[self.owners.file] = "owners"
+            expected[self.instances.file] = "instances"
         for rels in self.streams.values():
             for rel in rels:
                 expected[rel] = "stream"
@@ -228,4 +354,58 @@ class HacppManifest:
 
                 if sha256_file(path) != info["sha256"]:
                     raise ManifestError("checksum mismatch for %s" % rel)
+        if "artifact_bytes" in self.storage:
+            actual = sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
+            if int(self.storage["artifact_bytes"]) != actual:
+                raise ManifestError(
+                    "artifact size mismatch: manifest=%s disk=%s"
+                    % (self.storage["artifact_bytes"], actual)
+                )
+        measured_parameter_bytes = validate_shared_decoder_file(
+            root / self.shared_decoder.weights,
+            use_feat_bank=bool(self.decoder_config["use_feat_bank"]),
+        )
+        if measured_parameter_bytes != int(
+            self.decoder_config["shared_decoder_parameter_bytes"]
+        ):
+            raise ManifestError(
+                "shared decoder parameter-byte mismatch: decoder_config=%s measured=%s"
+                % (
+                    self.decoder_config["shared_decoder_parameter_bytes"],
+                    measured_parameter_bytes,
+                )
+            )
+        return self
+
+    def _validate_codec_contract(self):
+        """Self-contained (``codec_only``) bundle: everything decode needs."""
+
+        missing = [key for key in DECODER_CONFIG_REQUIRED_KEYS if key not in self.decoder_config]
+        if missing:
+            raise ManifestError(
+                "decoder_config is missing keys required to instantiate the "
+                "HAC++ GaussianModel: %s" % ", ".join(missing)
+            )
+        if int(self.decoder_config["config_version"]) != 1:
+            raise ManifestError("unsupported decoder_config version %r" % self.decoder_config["config_version"])
+        if self.decoder_config["dtype"] != "float32":
+            raise ManifestError("only float32 shared decoder weights are currently supported")
+        if int(self.decoder_config["shared_decoder_parameter_bytes"]) <= 0:
+            raise ManifestError("shared_decoder_parameter_bytes must be measured and positive")
+        declared = {rel for rels in self.streams.values() for rel in rels}
+        declared.add(self.shared_decoder.weights)
+        for key, rel in CODEC_REQUIRED_FILES.items():
+            if rel not in declared:
+                raise ManifestError(
+                    "self-contained bundle must declare %s under %r (got streams=%s)"
+                    % (rel, key, sorted(declared))
+                )
+        for family in ("feat", "scaling", "offsets"):
+            if not any(
+                rel.startswith("hacpp/%s_" % family) and rel.endswith(".b") for rel in declared
+            ):
+                raise ManifestError(
+                    "self-contained bundle must include at least one '%s_*' "
+                    "arithmetic-coded stream" % family
+                )
         return self

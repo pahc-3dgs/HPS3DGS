@@ -1,7 +1,8 @@
 # HAC++ backend status
 
-This branch implements a Phase-0 PAHC-to-HAC++ adapter and an auditable codec
-contract. It does **not** yet implement owner-aware HAC++ training.
+This branch implements a Phase-0 PAHC-to-HAC++ adapter, a self-contained HAC++
+codec bundle, and an auditable codec contract. It does **not** yet implement
+owner-aware HAC++ training.
 
 ## What is implemented
 
@@ -14,6 +15,13 @@ contract. It does **not** yet implement owner-aware HAC++ training.
 - The HAC++ bridge runs in a subprocess to avoid top-level Python-package
   collisions with SegAnyGaussians. The bundle stores one `shared_mlp.pt`; the
   hash grid remains only in `hash.b`.
+- Driver JSON is sentinel-framed, so HAC++/GPCC stdout cannot corrupt the
+  bridge result.
+- `encode` writes all entropy streams, normalization bounds, MLP-only decoder
+  weights, and the complete architecture metadata in `decoder_config.json`.
+- `decode` can reconstruct the HAC++ model from the bundle without the
+  original model directory. A model/source path is needed only to render the
+  original cameras and compare against GT.
 
 ## Important boundary
 
@@ -41,7 +49,39 @@ python scripts/hacpp_backend.py \
   --hacpp-root /path/to/HAC-plus \
   --python /path/to/hacpp/python \
   inspect
+
+python scripts/hacpp_backend.py --hacpp-root /path/to/HAC-plus \
+  --python /path/to/hacpp/python encode \
+  --model-path /path/to/trained/model --source-path /path/to/dataset \
+  --out-dir outputs/scene_raw
+
+python scripts/hacpp_backend.py pack \
+  --stream-dir outputs/scene_raw --bundle-dir outputs/scene_bundle \
+  --scene-id scene
+
+# True bundle-only decode (no PLY/checkpoint/model directory is read).
+python scripts/hacpp_backend.py --hacpp-root /path/to/HAC-plus \
+  --python /path/to/hacpp/python decode \
+  --bundle-dir outputs/scene_bundle --verify-checksums
+
+# Optional held-out evaluation. model/source provide cameras and GT only.
+python scripts/hacpp_backend.py --hacpp-root /path/to/HAC-plus \
+  --python /path/to/hacpp/python decode \
+  --bundle-dir outputs/scene_bundle --model-path /path/to/trained/model \
+  --source-path /path/to/dataset --render --verify-checksums
 ```
+
+## Storage fields
+
+`manifest.json` keeps paper and deployment accounting separate:
+
+- `paper_total_bytes/mib`: encoded anchor/features/scales/offsets/hash/masks,
+  plus 24 raw bytes for the two 3D bounds and raw float32 MLP parameters. This
+  reproduces HAC++'s `Encoded sizes in MB` convention.
+- `codec_stream_bytes/mib`: physical encoder-output files, including PyTorch's
+  serialization overhead for `x_bound_min/max.pkl`.
+- `artifact_bytes/mib`: the entire portable bundle, including `shared_mlp.pt`,
+  `decoder_config.json`, hashes, and `manifest.json`.
 
 Train the HAC++ student from the generated `hacpp_init.ply` using the external
 HAC++ checkout's `train.py --init_ply ...`. A SAGA/3DGS checkpoint cannot be

@@ -7,16 +7,72 @@ import torch
 
 from src.codec import CompactScene, TemplateInstance
 from src.hacpp.export import SH_C0, basis_to_init_points
-from src.hacpp.bridge import HacppBridge
+from src.hacpp.bridge import HacppBridge, HacppBridgeError, parse_driver_stdout
 from src.hacpp.instance_math import expand_instance_anchors
-from src.hacpp.manifest import ManifestError, OwnerSection, verify_shared_decoder_file
+from src.hacpp.manifest import (
+    ManifestError,
+    OwnerSection,
+    validate_shared_decoder_file,
+    verify_shared_decoder_file,
+)
 from src.hacpp.pipeline import load_instances, save_instances
 from src.hacpp.pipeline import build_bundle
-from src.hacpp.bundle import read_bundle
+from src.hacpp.bundle import bundle_artifact_bytes, read_bundle
 from src.metrics import compression_report
 
 
 class HacppContractTests(unittest.TestCase):
+    @staticmethod
+    def _decoder_config(parameter_bytes=20):
+        return {
+            "config_version": 1,
+            "feat_dim": 50,
+            "n_offsets": 10,
+            "voxel_size": 0.005,
+            "update_depth": 3,
+            "update_init_factor": 16,
+            "update_hierachy_factor": 4,
+            "use_feat_bank": False,
+            "n_features_per_level": 4,
+            "log2_hashmap_size": 13,
+            "log2_hashmap_size_2D": 15,
+            "resolutions_list": [18, 24],
+            "resolutions_list_2D": [130, 258],
+            "use_2D": True,
+            "ste_binary": True,
+            "ste_multistep": False,
+            "add_noise": False,
+            "decoded_version": True,
+            "white_background": False,
+            "is_synthetic_nerf": False,
+            "eval": True,
+            "all_views_train_test": False,
+            "Q": 1,
+            "dtype": "float32",
+            "shared_decoder_parameter_bytes": parameter_bytes,
+        }
+
+    @staticmethod
+    def _decoder_state():
+        return {
+            name: {"weight": torch.ones(1)}
+            for name in (
+                "opacity_mlp", "cov_mlp", "color_mlp", "grid_mlp", "deform_mlp"
+            )
+        }
+
+    def test_driver_protocol_extracts_last_adjacent_frame_and_keeps_noise(self):
+        payload, diagnostics = parse_driver_stdout(
+            "HAC log\n@@HACPP_RESULT@@ {\"ok\": true, \"views\": 1}\n"
+            "@@HACPP_RESULT_END@@\ntrailing diagnostic\n"
+        )
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["views"], 1)
+        self.assertIn("HAC log", diagnostics)
+        self.assertIn("trailing diagnostic", diagnostics)
+        with self.assertRaises(HacppBridgeError):
+            parse_driver_stdout("@@HACPP_RESULT@@ {\"ok\": true}\nnoise\n@@HACPP_RESULT_END@@\n")
+
     def test_bridge_invokes_the_installed_src_driver_module(self):
         bridge = object.__new__(HacppBridge)
         bridge.python_exe = "python"
@@ -72,6 +128,8 @@ class HacppContractTests(unittest.TestCase):
             torch.save({"color_mlp": {"weight": torch.ones(1)}}, good)
             self.assertTrue(verify_shared_decoder_file(bad))
             self.assertEqual(verify_shared_decoder_file(good), [])
+            with self.assertRaises(ManifestError):
+                validate_shared_decoder_file(good)
         with self.assertRaises(ManifestError):
             OwnerSection(num_anchors=1, num_owners=1, phase="stable").validate()
         OwnerSection(num_anchors=1, num_owners=1, phase="stable", provenance="propagated in training").validate()
@@ -97,8 +155,16 @@ class HacppContractTests(unittest.TestCase):
             (streams / "xyz_gpcc.npz").write_bytes(b"anchor")
             (streams / "hash.b").write_bytes(b"hash")
             (streams / "masks.b").write_bytes(b"mask")
+            (streams / "x_bound_min.pkl").write_bytes(b"xmin")
+            (streams / "x_bound_max.pkl").write_bytes(b"xmax")
+            (streams / "feat_0_0.b").write_bytes(b"feat")
+            (streams / "scaling_0.b").write_bytes(b"scale")
+            (streams / "offsets_0.b").write_bytes(b"offset")
+            (streams / "decoder_config.json").write_text(
+                __import__("json").dumps(self._decoder_config()), encoding="utf-8"
+            )
             decoder = root / "shared_mlp.pt"
-            torch.save({"color_mlp": {"weight": torch.ones(1)}}, decoder)
+            torch.save(self._decoder_state(), decoder)
             bundle = root / "bundle"
             manifest = build_bundle(
                 bundle,
@@ -109,6 +175,33 @@ class HacppContractTests(unittest.TestCase):
             self.assertEqual(manifest.owners.phase, "init_only")
             loaded = read_bundle(bundle, verify=True)
             self.assertEqual(loaded.shared_decoder.weights, "hacpp/shared_mlp.pt")
+            self.assertEqual(loaded.storage["paper_bound_bytes"], 24)
+            self.assertEqual(loaded.storage["paper_total_bytes"], 73)
+            self.assertEqual(loaded.storage["artifact_bytes"], bundle_artifact_bytes(bundle))
+
+    def test_codec_only_bundle_needs_no_owner_sidecars(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            streams = root / "streams"
+            streams.mkdir()
+            payloads = {
+                "xyz_gpcc.npz": b"a", "hash.b": b"h", "masks.b": b"m",
+                "x_bound_min.pkl": b"x", "x_bound_max.pkl": b"y",
+                "feat_0_0.b": b"f", "scaling_0.b": b"s", "offsets_0.b": b"o",
+            }
+            for name, value in payloads.items():
+                (streams / name).write_bytes(value)
+            decoder = streams / "shared_mlp.pt"
+            torch.save(self._decoder_state(), decoder)
+            (streams / "decoder_config.json").write_text(
+                __import__("json").dumps(self._decoder_config()), encoding="utf-8"
+            )
+            bundle = root / "bundle"
+            manifest = build_bundle(bundle, hacpp_stream_dir=streams, scene_id="synthetic")
+            self.assertTrue(manifest.codec_only)
+            self.assertFalse((bundle / "owners.npz").exists())
+            self.assertFalse((bundle / "instances.npz").exists())
+            read_bundle(bundle, verify=True)
 
 
 if __name__ == "__main__":

@@ -15,6 +15,10 @@ What this bridge *does*:
 * ``decode``       - run ``GaussianModel.conduct_decoding`` against a bitstream
                      directory, optionally rendering test views.
 
+All commands exchange JSON on stdout inside a fixed sentinel frame
+(:data:`src.hacpp.driver.RESULT_BEGIN` / ``RESULT_END``); every other stdout
+line is HAC++/GPCC progress noise and is returned as ``diagnostics``.
+
 What it deliberately does *not* do:
 
 * restore HAC++ state from a SAGA/3DGS checkpoint. A HAC++ ``GaussianModel``
@@ -31,9 +35,15 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
+
+from .driver import RESULT_BEGIN, RESULT_END
 
 DEFAULT_HACPP_ROOT = "/disk3/ydz/code-worktrees/HAC-plus/all150-fa1-20260902"
+
+#: Diagnostics attached to a parsed payload are capped so that a runaway HAC++
+#: log cannot flood the caller, but the cap is generous and always announced.
+MAX_DIAGNOSTICS_CHARS = 200_000
 
 REQUIRED_HACPP_FILES = (
     "scene/gaussian_model.py",
@@ -59,6 +69,78 @@ class HacppBridgeError(RuntimeError):
 
 def explain_incompatibility():
     return INCOMPATIBILITY_NOTE
+
+
+def parse_driver_stdout(stdout: str) -> Tuple[Dict[str, Any], str]:
+    """Extract the driver's final JSON from noisy stdout.
+
+    HAC++ (and the GPCC ``tmc3`` binary it shells out to) print progress lines
+    on stdout *before* the driver emits its result, so the JSON is located via
+    the sentinel frame the driver writes, scanning **backwards** from the end:
+    the last ``RESULT_END`` line closes the result, and the ``RESULT_BEGIN``
+    line directly above it carries the payload. Everything outside the frame is
+    returned as diagnostics - it is never silently dropped.
+
+    Raises :class:`HacppBridgeError` when no complete frame is present (this is
+    always a driver/protocol bug or a hard crash mid-write, never "no result").
+    """
+
+    lines = stdout.splitlines()
+    end_index = None
+    for index in range(len(lines) - 1, -1, -1):
+        if lines[index].strip() == RESULT_END:
+            end_index = index
+            break
+    if end_index is None or end_index == 0:
+        raise HacppBridgeError(
+            "driver produced no %s frame (protocol violation); stdout tail: %s"
+            % (RESULT_END, _tail(stdout))
+        )
+    begin_index = None
+    candidate = end_index - 1
+    if candidate >= 0 and lines[candidate].startswith(RESULT_BEGIN):
+        begin_index = candidate
+    if begin_index is None:
+        raise HacppBridgeError(
+            "driver result frame has %s but no %s line; stdout tail: %s"
+            % (RESULT_END, RESULT_BEGIN, _tail(stdout))
+        )
+    payload_line = lines[begin_index][len(RESULT_BEGIN):].strip()
+    try:
+        payload = json.loads(payload_line)
+    except json.JSONDecodeError as exc:
+        raise HacppBridgeError(
+            "driver result line is not valid JSON (%s); line: %.500s" % (exc, payload_line)
+        ) from exc
+    if not isinstance(payload, dict):
+        raise HacppBridgeError("driver result is not a JSON object: %.200s" % (payload_line,))
+    outside = [line for index, line in enumerate(lines) if index < begin_index or index > end_index]
+    diagnostics = "\n".join(outside).strip("\n")
+    return payload, diagnostics
+
+
+def _tail(text: str, limit: int = 2000):
+    text = text.strip("\n")
+    if len(text) <= limit:
+        return text
+    return "...(truncated)..." + text[-limit:]
+
+
+def _attach_diagnostics(payload: Dict[str, Any], diagnostics: str) -> Dict[str, Any]:
+    """Keep the noisy stdout alongside the parsed result (never discard it)."""
+
+    if not diagnostics:
+        return payload
+    truncated = len(diagnostics) > MAX_DIAGNOSTICS_CHARS
+    if truncated:
+        diagnostics = (
+            "...(head dropped, %d chars)..." % (len(diagnostics) - MAX_DIAGNOSTICS_CHARS)
+            + diagnostics[-MAX_DIAGNOSTICS_CHARS:]
+        )
+    payload = dict(payload)
+    payload["diagnostics"] = diagnostics
+    payload["diagnostics_truncated"] = truncated
+    return payload
 
 
 @dataclass
@@ -105,16 +187,22 @@ class HacppBridge:
             text=True,
             timeout=self.timeout_s,
         )
-        payload: Dict[str, Any] = {}
-        if proc.stdout.strip():
-            try:
-                payload = json.loads(proc.stdout)
-            except json.JSONDecodeError:
-                payload = {"ok": False, "error": "unparsable driver output", "stdout": proc.stdout}
+        try:
+            payload, diagnostics = parse_driver_stdout(proc.stdout or "")
+        except HacppBridgeError as exc:
+            raise HacppBridgeError(
+                "driver command %r exited %s without a valid result frame: %s; stderr: %s"
+                % (command, proc.returncode, exc, _tail(proc.stderr or ""))
+            ) from exc
+        payload = _attach_diagnostics(payload, diagnostics)
         if proc.returncode != 0:
             raise HacppBridgeError(
                 "driver command %r failed (%s): %s"
                 % (command, proc.returncode, proc.stderr.strip() or payload.get("error"))
+            )
+        if not payload.get("ok", False):
+            raise HacppBridgeError(
+                "driver command %r reported failure: %s" % (command, payload.get("error"))
             )
         return payload
 
@@ -132,17 +220,29 @@ class HacppBridge:
             extra += ["--source-path", str(source_path)]
         return self.run("encode", extra)
 
-    def decode(self, model_path: str | Path, bitstream_dir: str | Path, render: bool = False, source_path: str | Path | None = None):
-        extra = [
-            "--model-path",
-            str(model_path),
-            "--bitstream-dir",
-            str(bitstream_dir),
-        ]
+    def decode(
+        self,
+        bitstream_dir: str | Path,
+        model_path: str | Path | None = None,
+        render: bool = False,
+        source_path: str | Path | None = None,
+        max_cameras: int | None = None,
+    ):
+        """Decode a portable stream directory.
+
+        ``model_path`` is optional for decode-only validation. Rendering still
+        needs it because cameras/images are dataset assets, not codec state.
+        """
+
+        extra = ["--bitstream-dir", str(bitstream_dir)]
+        if model_path is not None:
+            extra += ["--model-path", str(model_path)]
         if source_path is not None:
             extra += ["--source-path", str(source_path)]
         if render:
             extra.append("--render")
+        if max_cameras is not None:
+            extra += ["--max-cameras", str(max_cameras)]
         return self.run("decode", extra)
 
     def render(self, model_path: str | Path, source_path: str | Path | None = None):

@@ -32,18 +32,30 @@ encode    run ``GaussianModel.conduct_encoding`` on a trained HAC++ model dir
 decode    run ``GaussianModel.conduct_decoding`` and render test views
 render    render a (decoded) HAC++ model dir and report PSNR
 
-Every command prints a single JSON object on stdout; anything on stderr is a
-human-readable error. Missing deps or checkpoints are reported honestly as
-``{"ok": false, "error": ...}`` with a non-zero exit code - nothing is faked.
+Every command prints a single JSON object on stdout wrapped in a fixed
+sentinel pair (see :data:`RESULT_BEGIN` / :data:`RESULT_END`). HAC++ itself
+prints human-readable progress lines (and tmc3/GPCC writes its own banner) on
+stdout *before* the JSON, so the sentinel is the only reliable frame; the
+bridge skips everything outside the pair and keeps it as diagnostics. Missing
+deps or checkpoints are reported honestly as ``{"ok": false, "error": ...}``
+with a non-zero exit code - nothing is faked.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import math
 import os
 import sys
+import time
+
+#: stdout framing for the driver's final JSON payload. The JSON is written on
+#: its own single line right after ``RESULT_BEGIN`` (json.dumps escapes inner
+#: newlines), then ``RESULT_END`` closes the block. The bridge scans backwards
+#: from the end of stdout so that HAC++ log lines that merely *mention* the
+#: sentinel cannot fake a result.
+RESULT_BEGIN = "@@HACPP_RESULT@@"
+RESULT_END = "@@HACPP_RESULT_END@@"
 
 
 def _prepend_hacpp_root(root: str):
@@ -57,7 +69,10 @@ def _prepend_hacpp_root(root: str):
 
 
 def _json_print(payload):
-    sys.stdout.write(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+    """Emit the final JSON payload inside the sentinel frame (single lines)."""
+
+    line = json.dumps(payload, sort_keys=True)
+    sys.stdout.write("%s %s\n%s\n" % (RESULT_BEGIN, line, RESULT_END))
     sys.stdout.flush()
 
 
@@ -172,6 +187,78 @@ ENCODING_CONFIG = {
     "ste_multistep": False,
     "add_noise": False,
 }
+
+DECODER_CONFIG_VERSION = 1
+
+
+def make_decoder_config(dataset, model_path, source_path, shared_decoder_parameter_bytes=0):
+    """Return every value needed to instantiate the entropy decoder.
+
+    This deliberately stores values, not paths. Dataset images/cameras are
+    required only for rendering and remain outside the codec bundle.
+    """
+
+    source = os.path.abspath(source_path or getattr(dataset, "source_path", model_path))
+    config = {
+        "config_version": DECODER_CONFIG_VERSION,
+        "feat_dim": int(dataset.feat_dim),
+        "n_offsets": int(dataset.n_offsets),
+        "voxel_size": float(dataset.voxel_size),
+        "update_depth": int(dataset.update_depth),
+        "update_init_factor": int(dataset.update_init_factor),
+        "update_hierachy_factor": int(dataset.update_hierachy_factor),
+        "use_feat_bank": bool(dataset.use_feat_bank),
+        "decoded_version": True,
+        "is_synthetic_nerf": os.path.exists(os.path.join(source, "transforms_train.json")),
+        "white_background": bool(getattr(dataset, "white_background", False)),
+        "eval": bool(getattr(dataset, "eval", True)),
+        "all_views_train_test": bool(getattr(dataset, "all_views_train_test", False)),
+        "Q": 1,
+        "dtype": "float32",
+        "shared_decoder_parameter_bytes": int(shared_decoder_parameter_bytes),
+    }
+    for key, value in ENCODING_CONFIG.items():
+        config[key] = list(value) if isinstance(value, tuple) else value
+    return config
+
+
+def build_gaussians_from_decoder_config(config, device):
+    """Instantiate an empty HAC++ model using only portable bundle metadata."""
+
+    from scene.gaussian_model import GaussianModel
+
+    required = (
+        "feat_dim", "n_offsets", "voxel_size", "update_depth",
+        "update_init_factor", "update_hierachy_factor", "use_feat_bank",
+        "n_features_per_level", "log2_hashmap_size", "log2_hashmap_size_2D",
+        "resolutions_list", "resolutions_list_2D", "use_2D", "ste_binary",
+        "ste_multistep", "add_noise", "decoded_version", "is_synthetic_nerf",
+    )
+    missing = [key for key in required if key not in config]
+    if missing:
+        raise ValueError("decoder_config missing required keys: %s" % ", ".join(missing))
+    model = GaussianModel(
+        int(config["feat_dim"]),
+        int(config["n_offsets"]),
+        float(config["voxel_size"]),
+        int(config["update_depth"]),
+        int(config["update_init_factor"]),
+        int(config["update_hierachy_factor"]),
+        bool(config["use_feat_bank"]),
+        n_features_per_level=int(config["n_features_per_level"]),
+        log2_hashmap_size=int(config["log2_hashmap_size"]),
+        log2_hashmap_size_2D=int(config["log2_hashmap_size_2D"]),
+        resolutions_list=tuple(config["resolutions_list"]),
+        resolutions_list_2D=tuple(config["resolutions_list_2D"]),
+        use_2D=bool(config["use_2D"]),
+        ste_binary=bool(config["ste_binary"]),
+        ste_multistep=bool(config["ste_multistep"]),
+        add_noise=bool(config["add_noise"]),
+        Q=config.get("Q", 1),
+        decoded_version=bool(config["decoded_version"]),
+        is_synthetic_nerf=bool(config["is_synthetic_nerf"]),
+    )
+    return model.to(device)
 
 
 def build_gaussians(hacpp_root, dataset, device):
@@ -336,6 +423,35 @@ def save_shared_decoder(pc, path):
     return state
 
 
+def shared_decoder_parameter_bytes(state):
+    """Paper accounting: raw tensor payload, excluding torch.save headers."""
+
+    return sum(value.numel() * value.element_size() for module in state.values() for value in module.values())
+
+
+def load_shared_decoder(pc, path, device):
+    """Restore the MLP-only state saved by :func:`save_shared_decoder`."""
+
+    state = _torch_load(path, device)
+    modules = {
+        "opacity_mlp": pc.mlp_opacity,
+        "cov_mlp": pc.mlp_cov,
+        "color_mlp": pc.mlp_color,
+        "grid_mlp": pc.mlp_grid,
+        "deform_mlp": pc.mlp_deform,
+    }
+    if getattr(pc, "use_feat_bank", False):
+        modules["mlp_feature_bank"] = pc.mlp_feature_bank
+    missing = [key for key in modules if key not in state]
+    extra = sorted(set(state) - set(modules))
+    if missing or extra:
+        raise ValueError("shared decoder keys mismatch: missing=%s extra=%s" % (missing, extra))
+    for key, module in modules.items():
+        module.load_state_dict(state[key])
+    pc.eval()
+    return sorted(state)
+
+
 def shared_decoder_has_no_hash(path):
     """Structural check used by tests and by the bundle verifier."""
 
@@ -372,12 +488,24 @@ def _check_render_runtime(allow: bool = False):
     return message
 
 
-def _render_psnr(scene, gaussians, pipe, device, split="test", max_cameras=None, allow_torch2=False):
+def _render_psnr(
+    scene,
+    gaussians,
+    pipe,
+    device,
+    split="test",
+    max_cameras=None,
+    allow_torch2=False,
+    white_background=False,
+):
     """Render the requested split (test preferred, explicit train fallback)."""
 
     import torch
 
     from gaussian_renderer import prefilter_voxel, render
+    from utils.image_utils import psnr
+    from utils.loss_utils import ssim
+    import lpips
 
     if split == "test":
         cameras = scene.getTestCameras()
@@ -388,24 +516,51 @@ def _render_psnr(scene, gaussians, pipe, device, split="test", max_cameras=None,
     total = len(cameras)
     if max_cameras:
         cameras = cameras[: int(max_cameras)]
-    background = torch.tensor([0, 0, 0], dtype=torch.float32, device=device)
-    psnr_sum, count = 0.0, 0
+    background = torch.tensor(
+        [1, 1, 1] if white_background else [0, 0, 0],
+        dtype=torch.float32,
+        device=device,
+    )
+    lpips_fn = lpips.LPIPS(net="vgg").to(device).eval()
+    psnr_sum, ssim_sum, lpips_sum, count = 0.0, 0.0, 0.0, 0
+    render_times = []
     for cam in cameras:
         with torch.no_grad():
             # Match HAC++ train.py evaluation: select visible anchors before
             # expanding their offsets into rasterized Gaussians.
             visible_mask = prefilter_voxel(cam, gaussians, pipe, background)
+            torch.cuda.synchronize()
+            render_start = time.perf_counter()
             image = render(cam, gaussians, pipe, background, visible_mask=visible_mask)["render"].clamp(0, 1)
+            torch.cuda.synchronize()
+            render_times.append(time.perf_counter() - render_start)
         target = cam.original_image.to(device).clamp(0, 1)
-        mse = torch.mean((image - target) ** 2).item()
-        psnr_sum += -10.0 * math.log10(max(mse, 1e-12))
+        # HAC++'s official metric path saves PNGs and reads them back before
+        # evaluation. Reproduce torchvision.save_image's uint8 conversion in
+        # memory so these values are directly comparable without writing 300
+        # temporary images for the full/decoded pair.
+        image_metric = torch.floor(image * 255.0 + 0.5).clamp(0, 255) / 255.0
+        target_metric = torch.floor(target * 255.0 + 0.5).clamp(0, 255) / 255.0
+        image_batch = image_metric.unsqueeze(0)
+        target_batch = target_metric.unsqueeze(0)
+        psnr_sum += psnr(image_batch, target_batch).mean().item()
+        ssim_sum += ssim(image_batch, target_batch).mean().item()
+        with torch.no_grad():
+            lpips_sum += lpips_fn(image_batch, target_batch, normalize=False).mean().item()
         count += 1
+    timed = render_times[5:] if len(render_times) > 5 else render_times
+    mean_render_seconds = sum(timed) / max(len(timed), 1)
     return {
         "split": split,
         "views": count,
         "views_total_in_split": total,
         "truncated": bool(max_cameras and count < total),
         "psnr": psnr_sum / max(count, 1),
+        "ssim": ssim_sum / max(count, 1),
+        "lpips": lpips_sum / max(count, 1),
+        "render_fps": 1.0 / mean_render_seconds if mean_render_seconds else None,
+        "fps_warmup_views_excluded": min(5, len(render_times)),
+        "metric_domain": "png_uint8_equivalent",
     }
 
 
@@ -417,13 +572,23 @@ def _gpcc_mode():
 
 def cmd_encode(args):
     _prepend_hacpp_root(args.hacpp_root)
-    scene, gaussians, _dataset, _pipe = load_hacpp_scene(
+    scene, gaussians, dataset, _pipe = load_hacpp_scene(
         args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
     )
     os.makedirs(args.out_dir, exist_ok=True)
     log_info = gaussians.conduct_encoding(pre_path_name=args.out_dir)
     decoder_path = os.path.join(args.out_dir, "shared_mlp.pt")
     state = save_shared_decoder(gaussians, decoder_path)
+    config = make_decoder_config(
+        dataset,
+        args.model_path,
+        args.source_path,
+        shared_decoder_parameter_bytes(state),
+    )
+    config_path = os.path.join(args.out_dir, "decoder_config.json")
+    with open(config_path, "w") as handle:
+        json.dump(config, handle, indent=2, sort_keys=True)
+        handle.write("\n")
     payload = {
         "ok": True,
         "out_dir": os.path.abspath(args.out_dir),
@@ -433,7 +598,9 @@ def cmd_encode(args):
             "weights": "shared_mlp.pt",
             "keys": sorted(state.keys()),
             "excludes_hash": True,
+            "parameter_bytes": config["shared_decoder_parameter_bytes"],
         },
+        "decoder_config": "decoder_config.json",
     }
     _json_print(payload)
     return 0
@@ -441,21 +608,48 @@ def cmd_encode(args):
 
 def cmd_decode(args):
     _prepend_hacpp_root(args.hacpp_root)
-    scene, gaussians, _dataset, pipe = load_hacpp_scene(
-        args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
-    )
     if not os.path.isdir(args.bitstream_dir):
         raise FileNotFoundError("bitstream dir not found: %s" % args.bitstream_dir)
-    payload = {"ok": True}
+    config_path = os.path.join(args.bitstream_dir, "decoder_config.json")
+    decoder_path = os.path.join(args.bitstream_dir, "shared_mlp.pt")
+    if not os.path.isfile(config_path):
+        raise FileNotFoundError("portable decoder config not found: %s" % config_path)
+    if not os.path.isfile(decoder_path):
+        raise FileNotFoundError("portable shared decoder not found: %s" % decoder_path)
+    with open(config_path) as handle:
+        decoder_config = json.load(handle)
+
+    scene = None
+    pipe = None
+    dataset = None
+    if args.model_path is not None:
+        scene, gaussians, dataset, pipe = load_hacpp_scene(
+            args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
+        )
+    else:
+        if args.render:
+            raise ValueError("--render requires --model-path for cameras and ground-truth images")
+        gaussians = build_gaussians_from_decoder_config(decoder_config, args.device)
+
+    payload = {"ok": True, "self_contained_decode": True}
     if args.render:
         payload["render_full"] = _render_psnr(
-            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
+            scene, gaussians, pipe, args.device, "test", args.max_cameras,
+            args.allow_torch2_render, bool(dataset.white_background)
         )
+    payload["shared_decoder_keys"] = load_shared_decoder(gaussians, decoder_path, args.device)
     log_info = gaussians.conduct_decoding(pre_path_name=args.bitstream_dir)
     payload["log"] = log_info
+    payload["decoded"] = {
+        "anchors": int(gaussians.get_anchor.shape[0]),
+        "feat_dim": int(gaussians.feat_dim),
+        "n_offsets": int(gaussians.n_offsets),
+        "voxel_size": float(gaussians.voxel_size),
+    }
     if args.render:
         payload["render_decoded"] = _render_psnr(
-            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
+            scene, gaussians, pipe, args.device, "test", args.max_cameras,
+            args.allow_torch2_render, bool(dataset.white_background)
         )
     _json_print(payload)
     return 0
@@ -463,13 +657,14 @@ def cmd_decode(args):
 
 def cmd_render(args):
     _prepend_hacpp_root(args.hacpp_root)
-    scene, gaussians, _dataset, pipe = load_hacpp_scene(
+    scene, gaussians, dataset, pipe = load_hacpp_scene(
         args.hacpp_root, args.model_path, args.source_path, args.device, load_iteration=-1
     )
     payload = {
         "ok": True,
         "full": _render_psnr(
-            scene, gaussians, pipe, args.device, "test", args.max_cameras, args.allow_torch2_render
+            scene, gaussians, pipe, args.device, "test", args.max_cameras,
+            args.allow_torch2_render, bool(dataset.white_background)
         ),
     }
     _json_print(payload)
@@ -490,7 +685,7 @@ def main(argv=None):
     encode.add_argument("--source-path", default=None)
 
     decode = sub.add_parser("decode")
-    decode.add_argument("--model-path", required=True)
+    decode.add_argument("--model-path", default=None)
     decode.add_argument("--bitstream-dir", required=True)
     decode.add_argument("--source-path", default=None)
     decode.add_argument("--render", action="store_true")
