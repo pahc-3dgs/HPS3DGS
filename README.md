@@ -12,26 +12,26 @@
   <a href="#testing">Testing</a>
 </p>
 
-HPS3DGS brings together PAHC, Geo33, independent Fig. 7 experiments, and portable HAC/HAC++ codecs in one versioned research codebase. It provides a common launcher while preserving each method's model, training procedure, and bitstream format.
+HPS3DGS provides a hierarchical 3D Gaussian compression pipeline for aerospace objects, with Geo33 variants, independent Fig. 7 experiments, and portable HAC/HAC++ codecs in one versioned research codebase. It provides a common launcher while preserving each method's model, training procedure, and bitstream format.
 
-**Release status:** `v0.1.0-rc.1` is the validated integration snapshot. Development currently uses `integrate/hps3dgs-20260912`; `main` still points to the earlier PAHC baseline. The snapshot covers code and representative decoding tests; complete training pipelines have not all been rerun.
+**Release status:** `v0.1.0-rc.1` is the validated integration snapshot. Development currently uses `integrate/hps3dgs-20260912`; `main` still points to the pre-integration baseline. The snapshot covers code and representative decoding tests; complete training pipelines have not all been rerun.
 
 ## Overview
 
-- **Geometry and appearance compression:** PAHC template-instance representations, Geo33 quantization-aware training, and native/compact storage formats.
+- **Geometry and appearance compression:** HPS3DGS template-instance representations, Geo33 quantization-aware training, and native/compact storage formats.
 - **Reproducible experiments:** independent Fig. 7 threshold runs with explicit input manifests and cached-candidate hashes.
 - **Portable codecs:** separate HAC and HAC++ adapters for packing, independent decoding, and rendering.
 - **Versioned validation:** pinned recursive dependencies, a source manifest, CPU tests, and GPU package regression tests.
 
 | Route | Entry point | Purpose |
 |---|---|---|
-| `pahc` | `scripts/run_pahc_pipeline.py` | Scene training, masks, features, and PAHC compression |
+| `pahc` | `scripts/run_pahc_pipeline.py` | Scene training, masks, features, and HPS3DGS compression |
 | `geo33` | `third_party/SegAnyGAussians/geo33.py` | Geometry preparation, four-group QAT, native package decoding |
 | `fig7` | `third_party/SegAnyGAussians/fig7_taur.py` | Independent threshold experiments and Fig. 7 package decoding |
 | `hac` / `hacpp` | `scripts/hac_backend.py` / `scripts/hacpp_backend.py` | Separate portable codec interfaces |
 | `hac-train` / `hacpp-train` | The corresponding backend's `train.py` | Native backend training |
 
-HAC/HAC++ integration currently has `codec_only` scope. Geo33 and Fig. 7 retain their own quantization and decoding conventions.
+The `pahc` CLI route runs the HPS3DGS pipeline; its existing identifier and file paths are retained for compatibility. HAC/HAC++ integration currently has `codec_only` scope. Geo33 and Fig. 7 retain their own quantization and decoding conventions.
 
 ## Installation
 
@@ -61,11 +61,11 @@ The integration was validated with the following environments:
 
 | Runtime profile | Routes | Python | PyTorch | PyTorch CUDA build |
 |---|---|---|---|---|
-| `saga` | PAHC, Geo33, Fig. 7 | 3.8.20 | 2.4.1 | 12.1 |
+| `saga` | HPS3DGS pipeline, Geo33, Fig. 7 | 3.8.20 | 2.4.1 | 12.1 |
 | `hac_train` / `hacpp_train` | Native training entry points | 3.8.20 | 2.4.1 | 12.1 |
 | `codec` | Portable HAC/HAC++ codecs | 3.8.18 | 1.12.1 | 11.3 |
 
-**PAHC / Geo33 / Fig. 7.** Start from a working Python 3.8 SAGA environment with PyTorch, torchvision, and its CUDA rasterizers installed. Follow the [pinned SAGA setup](third_party/SegAnyGAussians/README.md#installation) for its dependencies, then install the incremental PAHC package from the HPS3DGS root:
+**HPS3DGS / Geo33 / Fig. 7.** Start from a working Python 3.8 SAGA environment with PyTorch, torchvision, and its CUDA rasterizers installed. Follow the [pinned SAGA setup](third_party/SegAnyGAussians/README.md#installation) for its dependencies, then install the incremental HPS3DGS dependencies and package from the repository root:
 
 ```bash
 conda activate sacgs
@@ -73,7 +73,7 @@ python -m pip install -r requirements.txt
 python -m pip install --no-deps -e .
 ```
 
-`requirements.txt` adds PAHC dependencies; it does not install the SAGA rasterizers or select a GPU stack. Its current NumPy/OpenCV pins target Python 3.8. The historical upstream `environment.yml` files use Python 3.7 and are not a complete environment specification for this integration.
+`requirements.txt` adds HPS3DGS dependencies; it does not install the SAGA rasterizers or select a GPU stack. Its current NumPy/OpenCV pins target Python 3.8. The historical upstream `environment.yml` files use Python 3.7 and are not a complete environment specification for this integration.
 
 **Native HAC/HAC++ and portable codecs.** Keep their runtime environments separate from SAGA. The pinned [HAC](third_party/HAC/README.md#installation) and [HAC++](third_party/HAC-plus/README.md#installation) installation sections describe the backend dependencies. Their `submodules/` directories contain ZIP archives for `arithmetic`, `gridencoder`, `simple-knn`, and `diff-gaussian-rasterization`; extract and build these for the target environment. Use different Conda environment names when creating both backends. `pip install -e .` does not build these extensions.
 
@@ -124,7 +124,7 @@ CUDA_VISIBLE_DEVICES=0 python3 scripts/hps3dgs.py --runtime "$RUNTIME" geo33 -- 
 
 The dataset supplies cameras and reference images; the package supplies the compressed model. Geo33 compact storage packages use `run_storage_ablation.py decode`, not the native `geo33.py` decoder.
 
-### Run PAHC
+### Run HPS3DGS
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python3 scripts/hps3dgs.py --runtime "$RUNTIME" pahc -- \
@@ -134,7 +134,7 @@ CUDA_VISIBLE_DEVICES=0 python3 scripts/hps3dgs.py --runtime "$RUNTIME" pahc -- \
   --sam-checkpoint-path /absolute/path/to/sam_vit_h_4b8939.pth
 ```
 
-This invokes scene training, mask/feature preparation, feature training, and compression. For an existing compatible SAGA model with the required features, add `--skip-train --skip-mask --skip-feature`. See the [original PAHC guide](docs/PAHC_ORIGINAL_README.md) for pipeline details.
+This invokes scene training, mask/feature preparation, feature training, and compression. For an existing compatible SAGA model with the required features, add `--skip-train --skip-mask --skip-feature`. See the [legacy pipeline guide](docs/PAHC_ORIGINAL_README.md) for pipeline details.
 
 Fig. 7 uses an explicit source manifest; training additionally requires a hash-bound candidate cache. See [Fig. 7 entry points](third_party/SegAnyGAussians/HPS3DGS_FIG7_ENTRYPOINTS.md). The migrated multi-scene, input-alignment, and HAC++ evaluation scripts are documented in [experiment entry points](docs/EXPERIMENT_ENTRYPOINTS.md).
 
@@ -143,14 +143,14 @@ Fig. 7 uses an explicit source manifest; training additionally requires a hash-b
 ```text
 HPS3DGS/
 ├── configs/
-│   ├── pahc.yaml                   # PAHC algorithm configuration
+│   ├── pahc.yaml                   # HPS3DGS algorithm configuration
 │   ├── runtime.4090.json           # Validated reference-server runtimes
 │   ├── runtime.example.json        # Template for another machine
 │   ├── validation.4090.json        # Reference packages, metrics, and assertions
 │   └── fig7_*.4090.json            # Fig. 7 inputs and candidate bindings
 ├── scripts/
 │   ├── hps3dgs.py                  # Common launcher
-│   ├── run_pahc_pipeline.py        # Original PAHC pipeline
+│   ├── run_pahc_pipeline.py        # HPS3DGS pipeline (legacy filename)
 │   ├── compress.py / decode.py / evaluate.py
 │   ├── hac_backend.py / hacpp_backend.py
 │   ├── validate_release.py         # Source, CPU, and GPU validation
@@ -159,7 +159,7 @@ HPS3DGS/
 │   ├── check_merge.py              # Read-only validation gate
 │   └── experiments/                # Migrated experiment drivers
 ├── src/
-│   ├── codec.py / compression.py   # PAHC representation and compression
+│   ├── codec.py / compression.py   # HPS3DGS representation and compression
 │   ├── backend.py / data.py        # SAGA integration and input handling
 │   ├── math_utils.py / quantization.py / metrics.py
 │   └── hac/ / hacpp/               # Independent portable codec adapters
@@ -171,12 +171,12 @@ HPS3DGS/
 │   │   └── third_party/            # Nested kmeans_pytorch and segment-anything
 │   ├── HAC/                        # Pinned native HAC backend
 │   └── HAC-plus/                   # Pinned native HAC++ backend
-├── tests/                          # PAHC and backend contract tests
+├── tests/                          # HPS3DGS and backend contract tests
 ├── docs/                           # Usage, validation, and versioning guides
 ├── provenance/                     # Imported source and runtime identities
 ├── release_manifest.json           # Recursive source-file hashes
-├── requirements.txt                # Incremental PAHC dependencies
-└── pyproject.toml                  # PAHC Python package metadata
+├── requirements.txt                # Incremental HPS3DGS dependencies
+└── pyproject.toml                  # Python package metadata (legacy package ID)
 ```
 
 Datasets, checkpoints, compressed packages, and validation outputs are kept outside the source tree.
@@ -192,7 +192,7 @@ conda activate sacgs
 CUDA_VISIBLE_DEVICES="" python -B -m unittest discover -s tests -v
 ```
 
-This suite covers PAHC representation roundtrips and HAC/HAC++ contracts. It does not require the historical GPU regression packages. The release CPU profile below also runs the SegAny geometry and Fig. 7 tests, including a canonical fixture check.
+This suite covers HPS3DGS representation roundtrips and HAC/HAC++ contracts. It does not require the historical GPU regression packages. The release CPU profile below also runs the SegAny geometry and Fig. 7 tests, including a canonical fixture check.
 
 ### Source, CPU, and GPU validation
 
@@ -237,7 +237,7 @@ The `v0.1.0-rc.1` snapshot passed the following checks:
 | Instance integration | One synthetic nonempty instance; QAT gradients and independent three-view decoding |
 | Recovery | Fresh recursive checkout followed by a 150-view package decode |
 
-The eight package regressions reproduced their reference PSNR, SSIM, and LPIPS. The protocol is **150 train / 150 reconstruction views, using the same views**. These are reconstruction and migration checks. Full PAHC training/mask/feature/compression execution and native HAC/HAC++ short training remain outside this snapshot's completed validation. Synthetic instance tests do not establish real-scene template-sharing gains or owner-aware joint training.
+The eight package regressions reproduced their reference PSNR, SSIM, and LPIPS. The protocol is **150 train / 150 reconstruction views, using the same views**. These are reconstruction and migration checks. Full HPS3DGS training/mask/feature/compression execution and native HAC/HAC++ short training remain outside this snapshot's completed validation. Synthetic instance tests do not establish real-scene template-sharing gains or owner-aware joint training.
 
 ## Development
 
