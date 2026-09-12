@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the complete SegAnyGaussians and PAHC-3DGS pipeline."""
+"""Run the complete SegAnyGaussians and HPS3DGS pipeline."""
 
 import argparse
 import os
@@ -57,7 +57,7 @@ def main():
     parser.add_argument(
         "--config",
         type=Path,
-        default=REPO_ROOT / "configs" / "pahc.yaml",
+        default=REPO_ROOT / "configs" / "hps-3dgs.yaml",
     )
     parser.add_argument("--scene-iterations", type=int, default=30000)
     parser.add_argument("--feature-iterations", "--iterations", type=int, default=10000)
@@ -80,12 +80,12 @@ def main():
     model_path = args.model_path.resolve()
     saga_root = args.saga_root.resolve()
     config = args.config.resolve()
-    output = args.output.resolve() if args.output else REPO_ROOT / "outputs" / ("%s.pahc.pt" % model_path.name)
+    output = args.output.resolve() if args.output else REPO_ROOT / "outputs" / ("%s.hps-3dgs.pt" % model_path.name)
 
     if not source.exists() and not args.print_only:
         parser.error("Source scene does not exist: %s" % source)
     if not config.exists() and not args.print_only:
-        parser.error("PAHC config does not exist: %s" % config)
+        parser.error("HPS3DGS config does not exist: %s" % config)
     require_saga(saga_root, args.print_only)
 
     env = os.environ.copy()
@@ -214,18 +214,18 @@ def main():
             compression_command.extend(["--labels-path", args.labels_path.resolve()])
         run_command(
             compression_command,
-            "Step 4/4: Run PAHC-3DGS compression",
+            "Step 4/4: Run HPS3DGS compression",
             REPO_ROOT,
             env,
             args.print_only,
         )
     else:
-        print("[Skip] Step 4/4: PAHC-3DGS compression")
+        print("[Skip] Step 4/4: HPS3DGS compression")
 
     print("\nPipeline complete.")
     print("SAGA model: %s" % model_path)
     if not args.skip_compression:
-        print("PAHC scene: %s" % output)
+        print("HPS3DGS scene: %s" % output)
     return 0
 
 

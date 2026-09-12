@@ -1,9 +1,9 @@
-"""PAHC + shared-HAC++ backend.
+"""HPS3DGS + shared-HAC++ backend.
 
 One scene uses **one** HAC++ decoder (MLPs + entropy models) shared by every
 component template; only anchors/offsets/owner streams are per-scene data.
 Per-template HAC++ models are explicitly rejected (see
-:mod:`pahc.hacpp.manifest`).
+:mod:`src.hacpp.manifest`).
 """
 
 from .bridge import HacppBridge, HacppBridgeError, explain_incompatibility

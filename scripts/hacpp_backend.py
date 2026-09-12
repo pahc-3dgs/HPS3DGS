@@ -3,7 +3,7 @@
 
 Subcommands
 -----------
-export  Export a PAHC CompactScene (or a raw basis .pt) as an HAC++ init cloud
+export  Export a HPS3DGS CompactScene (or a raw basis .pt) as an HAC++ init cloud
         (``hacpp_init.ply``/``.npz`` + ``owners.npz`` + ``init_config.json``).
 inspect Dependency report for the external HAC++ checkout (never modified).
 encode  Encode a trained HAC++ scene into portable raw streams.
@@ -35,7 +35,7 @@ from src.hacpp.pipeline import build_bundle  # noqa: E402
 
 
 def _load_basis(path: Path):
-    """Load a PAHC CompactScene (.pahc.pt) or a raw tensor dict (.pt)."""
+    """Load a HPS3DGS CompactScene (.hps-3dgs.pt) or a raw tensor dict (.pt)."""
 
     try:
         payload = torch.load(path, map_location="cpu", weights_only=False)
@@ -153,7 +153,7 @@ def main():
     parser.add_argument("--device", default="cuda:0", help="device visible to the HAC++ subprocess")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    export = sub.add_parser("export", help="export a PAHC basis as an HAC++ init cloud")
+    export = sub.add_parser("export", help="export a HPS3DGS basis as an HAC++ init cloud")
     export.add_argument("--basis", type=Path, required=True)
     export.add_argument("--out-dir", type=Path, required=True)
     export.add_argument("--voxel-size", type=float, default=None)

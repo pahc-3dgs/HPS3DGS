@@ -48,7 +48,7 @@ def compression_report(
 
     ``bitstream_bytes`` counts real files on disk and is the number that should
     be reported as the compressed size. ``estimated_tensor_bytes`` (from
-    :func:`pahc.codec.estimate_payload_bytes`) is an in-memory estimate of the
+    :func:`src.codec.estimate_payload_bytes`) is an in-memory estimate of the
     serialised payload and is reported separately - it must not be presented as
     an actual bitstream size.
     """

@@ -21,7 +21,7 @@ from pathlib import Path
 
 
 ROUTES = {
-    "pahc": ("saga", "scripts/run_pahc_pipeline.py", "."),
+    "hps-3dgs": ("saga", "scripts/run_hps_3dgs_pipeline.py", "."),
     "geo33": ("saga", "third_party/SegAnyGAussians/geo33.py", "third_party/SegAnyGAussians"),
     "fig7": ("saga", "third_party/SegAnyGAussians/fig7_taur.py", "third_party/SegAnyGAussians"),
     "hac": ("codec", "scripts/hac_backend.py", "."),
@@ -76,10 +76,10 @@ def build_plan(root, runtime_path, route, native_args):
         env_values.update(source)
     env_values["PYTHONPATH"] = os.pathsep.join(pythonpath)
     injected_args = []
-    if route == "pahc":
+    if route == "hps-3dgs":
         saga = str(root / "third_party/SegAnyGAussians")
         injected_args = ["--saga-root", saga]
-        env_values["PAHC3DGS_SAGA_ROOT"] = saga
+        env_values["HPS_3DGS_SAGA_ROOT"] = saga
     elif route == "hac":
         injected_args = ["--hac-root", str(root / "third_party/HAC")]
     elif route == "hacpp":

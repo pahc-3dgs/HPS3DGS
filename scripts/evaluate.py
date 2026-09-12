@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute PAHC-3DGS compression statistics."""
+"""Compute HPS3DGS compression statistics."""
 
 import argparse
 import json

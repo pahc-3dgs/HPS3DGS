@@ -1,4 +1,4 @@
-"""Dataset helpers for PAHC-3DGS experiments."""
+"""Dataset helpers for HPS3DGS experiments."""
 
 from __future__ import annotations
 

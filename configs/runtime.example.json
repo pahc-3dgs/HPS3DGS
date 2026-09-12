@@ -36,7 +36,7 @@
       "env": {"WANDB_MODE": "disabled"}
     },
     "codec": {
-      "python": "/path/to/conda/envs/pahc_hacpp_py112/bin/python",
+      "python": "/path/to/conda/envs/hps-3dgs_hacpp_py112/bin/python",
       "pythonpath": [],
       "path_prepend": ["/path/to/runtime/bin"],
       "required_files": ["/path/to/runtime/bin/tmc3"]

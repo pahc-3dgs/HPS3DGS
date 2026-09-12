@@ -25,13 +25,13 @@ HPS3DGS provides a hierarchical 3D Gaussian compression pipeline for aerospace o
 
 | Route | Entry point | Purpose |
 |---|---|---|
-| `pahc` | `scripts/run_pahc_pipeline.py` | Scene training, masks, features, and HPS3DGS compression |
+| `hps-3dgs` | `scripts/run_hps_3dgs_pipeline.py` | Scene training, masks, features, and HPS3DGS compression |
 | `geo33` | `third_party/SegAnyGAussians/geo33.py` | Geometry preparation, four-group QAT, native package decoding |
 | `fig7` | `third_party/SegAnyGAussians/fig7_taur.py` | Independent threshold experiments and Fig. 7 package decoding |
 | `hac` / `hacpp` | `scripts/hac_backend.py` / `scripts/hacpp_backend.py` | Separate portable codec interfaces |
 | `hac-train` / `hacpp-train` | The corresponding backend's `train.py` | Native backend training |
 
-The `pahc` CLI route runs the HPS3DGS pipeline; its existing identifier and file paths are retained for compatibility. HAC/HAC++ integration currently has `codec_only` scope. Geo33 and Fig. 7 retain their own quantization and decoding conventions.
+HAC/HAC++ integration currently has `codec_only` scope. Geo33 and Fig. 7 retain their own quantization and decoding conventions.
 
 ## Installation
 
@@ -127,14 +127,14 @@ The dataset supplies cameras and reference images; the package supplies the comp
 ### Run HPS3DGS
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 python3 scripts/hps3dgs.py --runtime "$RUNTIME" pahc -- \
+CUDA_VISIBLE_DEVICES=0 python3 scripts/hps3dgs.py --runtime "$RUNTIME" hps-3dgs -- \
   -s /absolute/path/to/dataset \
   -m /absolute/path/to/new_model_directory \
-  -o /absolute/path/to/new_output/scene.pahc.pt \
+  -o /absolute/path/to/new_output/scene.hps-3dgs.pt \
   --sam-checkpoint-path /absolute/path/to/sam_vit_h_4b8939.pth
 ```
 
-This invokes scene training, mask/feature preparation, feature training, and compression. For an existing compatible SAGA model with the required features, add `--skip-train --skip-mask --skip-feature`. See the [legacy pipeline guide](docs/PAHC_ORIGINAL_README.md) for pipeline details.
+This invokes scene training, mask/feature preparation, feature training, and compression. For an existing compatible SAGA model with the required features, add `--skip-train --skip-mask --skip-feature`. See the [pipeline guide](docs/hps-3dgs-pipeline.md) for pipeline details.
 
 Fig. 7 uses an explicit source manifest; training additionally requires a hash-bound candidate cache. See [Fig. 7 entry points](third_party/SegAnyGAussians/HPS3DGS_FIG7_ENTRYPOINTS.md). The migrated multi-scene, input-alignment, and HAC++ evaluation scripts are documented in [experiment entry points](docs/EXPERIMENT_ENTRYPOINTS.md).
 
@@ -143,14 +143,14 @@ Fig. 7 uses an explicit source manifest; training additionally requires a hash-b
 ```text
 HPS3DGS/
 ├── configs/
-│   ├── pahc.yaml                   # HPS3DGS algorithm configuration
+│   ├── hps-3dgs.yaml               # HPS3DGS algorithm configuration
 │   ├── runtime.4090.json           # Validated reference-server runtimes
 │   ├── runtime.example.json        # Template for another machine
 │   ├── validation.4090.json        # Reference packages, metrics, and assertions
 │   └── fig7_*.4090.json            # Fig. 7 inputs and candidate bindings
 ├── scripts/
 │   ├── hps3dgs.py                  # Common launcher
-│   ├── run_pahc_pipeline.py        # HPS3DGS pipeline (legacy filename)
+│   ├── run_hps_3dgs_pipeline.py    # HPS3DGS pipeline
 │   ├── compress.py / decode.py / evaluate.py
 │   ├── hac_backend.py / hacpp_backend.py
 │   ├── validate_release.py         # Source, CPU, and GPU validation

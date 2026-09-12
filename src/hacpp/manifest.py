@@ -1,4 +1,4 @@
-"""Bitstream-bundle manifest for the PAHC + shared-HAC++ layout.
+"""Bitstream-bundle manifest for the HPS3DGS + shared-HAC++ layout.
 
 Design invariant enforced here: a scene carries **exactly one** shared HAC++
 decoder (MLPs + entropy models). The hash grid is *not* part of the shared
@@ -129,7 +129,7 @@ class OwnerSection:
     num_owners: int = 0
     ordering: str = "morton"
     layout: str = "owner_id:int32, row_in_owner:int32"
-    #: ``init_only``: owner ids come from PAHC clustering and are *not*
+    #: ``init_only``: owner ids come from HPS3DGS clustering and are *not*
     #: propagated through HAC++ anchor densification/pruning, so they are valid
     #: only for the initialisation cloud. Claiming ``stable`` requires
     #: ``provenance`` describing how ownership was tracked during training -
@@ -256,7 +256,7 @@ class HacppManifest:
     #: ``shared_decoder_bytes/_mib`` - physical ``shared_mlp.pt`` serialization,
     #: ``artifact_bytes/_mib`` - the whole bundle directory, manifest included.
     storage: Dict[str, Any] = field(default_factory=dict)
-    #: True for a single-scene HAC++ codec bundle that carries no PAHC
+    #: True for a single-scene HAC++ codec bundle that carries no HPS3DGS
     #: owners/instances sidecars; the owner contract is then not applicable.
     codec_only: bool = False
     notes: str = ""

@@ -1,4 +1,4 @@
-# Incremental PAHC-3DGS dependencies for the existing sacgs/SAGA environment.
+# Incremental HPS3DGS dependencies for the existing sacgs/SAGA environment.
 # PyTorch, torchvision, and CUDA extensions are managed by the base environment
 # and must be installed following the SAGA setup.
 numpy==1.24.4

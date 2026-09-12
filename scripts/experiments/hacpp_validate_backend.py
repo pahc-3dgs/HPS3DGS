@@ -1,4 +1,4 @@
-"""Reuse PAHC's bridge and bundle contract; verify every fresh RD artifact."""
+"""Reuse HPS3DGS's bridge and bundle contract; verify every fresh RD artifact."""
 import argparse,hashlib,json,math,os,subprocess,sys,time
 from pathlib import Path
 def read(p):return json.loads(Path(p).read_text())
@@ -108,7 +108,7 @@ def main():
  save(job/'independent_execution.json',dict(command=cmd,returncode=proc.returncode))
  files={str(p.relative_to(bundle)):dict(bytes=p.stat().st_size,sha256=sha(p)) for p in sorted(bundle.rglob('*')) if p.is_file()}
  assert sum(r['bytes'] for r in files.values())==size
- data=dict(scene=spec['scene'],method='PAHC-HAC++',role='backend_rd',setting=spec['setting'],config=spec['setting'],lmbda=spec['lmbda'],
+ data=dict(scene=spec['scene'],method='HPS3DGS-HAC++',role='backend_rd',setting=spec['setting'],config=spec['setting'],lmbda=spec['lmbda'],
   name=spec['setting'],group='lambda_sweep',size_mb=size/1e6,plotted_bytes=size,**{k:actual[k] for k in ['psnr','ssim','lpips']},
   n_train=150,n_eval=150,iterations=30000,gpu=spec['gpu'],model=str(model),bundle=str(bundle),bundle_files=files,
   codec_only=checked.codec_only,storage=checked.storage,metric_domain='png_uint8_equivalent',

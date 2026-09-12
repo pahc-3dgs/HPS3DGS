@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Decode a PAHC-3DGS compact scene."""
+"""Decode a HPS3DGS compact scene."""
 
 import argparse
 import json

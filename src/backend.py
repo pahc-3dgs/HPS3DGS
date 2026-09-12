@@ -1,4 +1,4 @@
-"""SegAnyGaussians backend used by PAHC-3DGS."""
+"""SegAnyGaussians backend used by HPS3DGS."""
 
 import argparse
 import importlib
@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 
 def ensure_saga_on_path(saga_root=None):
-    root = saga_root or os.environ.get("PAHC3DGS_SAGA_ROOT")
+    root = saga_root or os.environ.get("HPS_3DGS_SAGA_ROOT")
     if root is None:
         root = Path(__file__).resolve().parents[1] / "third_party" / "SegAnyGAussians"
     root = Path(root).resolve()
@@ -20,7 +20,7 @@ def ensure_saga_on_path(saga_root=None):
     if not (root / "scene").exists() or not (root / "gaussian_renderer").exists():
         raise RuntimeError(
             "SegAnyGaussians is not available. Initialize third_party/SegAnyGAussians "
-            "or set PAHC3DGS_SAGA_ROOT."
+            "or set HPS_3DGS_SAGA_ROOT."
         )
 
     if str(root) not in sys.path:

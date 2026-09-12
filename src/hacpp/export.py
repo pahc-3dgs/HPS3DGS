@@ -1,9 +1,9 @@
-"""Export a PAHC basis as an HAC++ *initialisation* cloud + owner sidecar.
+"""Export a HPS3DGS basis as an HAC++ *initialisation* cloud + owner sidecar.
 
 This is a data-format adapter, not a weight converter: HAC++ anchors, offsets,
 anchor features, its MLPs and its hash grid are a different parameterisation of
 a 3DGS scene and cannot be restored from a SAGA/3DGS checkpoint
-(:mod:`pahc.hacpp.bridge` refuses that explicitly). What we can do honestly is
+(:mod:`src.hacpp.bridge` refuses that explicitly). What we can do honestly is
 
 1. write the canonical basis points as the HAC++ init point cloud so a
    ``GaussianModel.create_from_pcd`` student can be trained from them, and

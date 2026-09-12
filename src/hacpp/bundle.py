@@ -1,4 +1,4 @@
-"""Writer/reader for the PAHC + shared-HAC++ bitstream bundle.
+"""Writer/reader for the HPS3DGS + shared-HAC++ bitstream bundle.
 
 Sizes recorded in the manifest are **real on-disk bytes** (``st_size``) plus a
 SHA-256, never in-memory tensor estimates. ``storage`` additionally separates

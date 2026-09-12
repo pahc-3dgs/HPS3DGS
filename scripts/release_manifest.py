@@ -166,11 +166,11 @@ def root_base(root):
         return None
     try:
         value = json.loads(provenance.read_text(encoding="utf-8"))
-        head = value["pahc"]["head"]
+        head = value["hps-3dgs"]["head"]
     except (OSError, ValueError, KeyError, TypeError) as error:
-        raise ManifestError("Cannot read pahc.head from {}: {}".format(provenance, error))
+        raise ManifestError("Cannot read hps-3dgs.head from {}: {}".format(provenance, error))
     if not isinstance(head, str) or not re.fullmatch(r"[0-9a-fA-F]{40,64}", head):
-        raise ManifestError("Invalid pahc.head in {}".format(provenance))
+        raise ManifestError("Invalid hps-3dgs.head in {}".format(provenance))
     return head.lower()
 
 

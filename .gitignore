@@ -13,7 +13,7 @@ wandb/
 test/
 tests/_artifacts/
 logs/
-docs/_build/
+docs/
 
 *.pth
 *.pt

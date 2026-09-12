@@ -1,6 +1,6 @@
 # SegAnyGaussians Backend Placeholder
 
-PAHC-3DGS uses SegAnyGaussians as the third-party 3DGS, semantic feature,
+HPS3DGS uses SegAnyGaussians as the third-party 3DGS, semantic feature,
 scene loading, and rendering backend.
 
 Recommended setup:
@@ -12,7 +12,7 @@ git submodule update --init --recursive third_party/SegAnyGAussians
 Alternatively, point to an existing checkout:
 
 ```bash
-export PAHC3DGS_SAGA_ROOT=/path/to/SegAnyGAussians
+export HPS_3DGS_SAGA_ROOT=/path/to/SegAnyGAussians
 ```
 
 The backend is not vendored here to avoid publishing checkpoints, generated

@@ -8,7 +8,7 @@ Run as::
 ``--hacpp-root`` is inserted at ``sys.path[0]`` *before* any HAC++ import so
 that ``import scene`` / ``import gaussian_renderer`` resolve to the HAC++
 packages and never collide with the SegAnyGaussians packages used elsewhere in
-PAHC (this is why the bridge is a subprocess and not an in-process import).
+HPS3DGS (this is why the bridge is a subprocess and not an in-process import).
 
 The driver mirrors the *reference* HAC++ API exactly:
 
@@ -402,7 +402,7 @@ def save_shared_decoder(pc, path):
     ``GaussianModel.save_mlp_checkpoints`` stores ``encoding_xyz`` too, but the
     hash grid is a per-scene stream (``hash.b``); keeping it in the shared
     decoder would double-bill those bytes and contradict the manifest contract
-    enforced by :mod:`pahc.hacpp.manifest`.
+    enforced by :mod:`src.hacpp.manifest`.
     """
 
     state = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run PAHC-3DGS compression.
+"""Run HPS3DGS compression.
 
 Closed-loop contract enforced here:
 
@@ -47,7 +47,7 @@ from src.codec import (
 from src.compression import (
     ClusterConfig,
     MatchingConfig,
-    PAHCConfig,
+    HPS3DGSConfig,
     RefinementConfig,
     run_geo32_compression,
 )
@@ -57,7 +57,7 @@ from src.quantization import quantize_appearance_attributes
 
 def load_config(path):
     cfg_raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    config = PAHCConfig(
+    config = HPS3DGSConfig(
         feature_dim=int(cfg_raw.get("feature_dim", 32)),
         feature_iteration=int(cfg_raw.get("feature_iteration", 10000)),
         appearance_keep_sh=bool(cfg_raw.get("appearance", {}).get("keep_instance_sh", True)),
@@ -302,8 +302,8 @@ def evaluate_rendering(scene, gaussians, pipe, backend, white_background):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", type=Path, default=Path("configs/pahc.yaml"))
-    parser.add_argument("--output", type=Path, default=Path("outputs/scene.pahc.pt"))
+    parser.add_argument("--config", type=Path, default=Path("configs/hps-3dgs.yaml"))
+    parser.add_argument("--output", type=Path, default=Path("outputs/scene.hps-3dgs.pt"))
     parser.add_argument("--model-path", type=Path, default=None)
     parser.add_argument("--source-path", type=Path, default=None)
     parser.add_argument("--saga-root", type=Path, default=None)

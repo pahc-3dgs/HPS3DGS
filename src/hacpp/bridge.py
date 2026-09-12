@@ -57,7 +57,7 @@ INCOMPATIBILITY_NOTE = (
     "HAC++ cannot be initialised from a SAGA/3DGS point_cloud.ply: HAC++ stores "
     "anchors + K offsets + anchor features + shared MLPs + a binary hash grid, "
     "which is a different parameterisation from per-Gaussian xyz/SH/scale/rot/"
-    "opacity. The supported path is: export the PAHC basis as an init cloud "
+    "opacity. The supported path is: export the HPS3DGS basis as an init cloud "
     "(src.hacpp.export.export_hacpp_init), train the HAC++ student with HAC++ "
     "train.py, then encode/decode it through this bridge."
 )
@@ -256,6 +256,6 @@ class HacppBridge:
 
         return (
             "encode/decode need a HAC++ model directory from HAC++ train.py "
-            "(chkpnt*.pth + cfg_args). PAHC only exports the init cloud; it "
+            "(chkpnt*.pth + cfg_args). HPS3DGS only exports the init cloud; it "
             "does not convert SAGA weights."
         )

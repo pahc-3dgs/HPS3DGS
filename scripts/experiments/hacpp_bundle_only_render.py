@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Decode and render only a portable PAHC/HAC++ bundle plus its dataset.
+"""Decode and render only a portable HPS3DGS/HAC++ bundle plus its dataset.
 
 No source-model argument, Scene construction, cfg_args, trained point_cloud,
 or source checkpoint is used. Camera transforms/loading and codec construction
-are reused from the pinned HAC++ and PAHC implementations.
+are reused from the pinned HAC++ and HPS3DGS implementations.
 Run in a fresh process with the verified py112 runtime and GPCC on PATH.
 """
 from __future__ import annotations
@@ -343,7 +343,7 @@ def main():
     parser.add_argument('--dataset', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--release-root', type=Path, default=Path(__file__).resolve().parents[2],
-                        help='PAHC release root; native HAC++ is third_party/HAC-plus')
+                        help='HPS3DGS release root; native HAC++ is third_party/HAC-plus')
     parser.add_argument('--code-manifest', type=Path, help='Defaults to release-root/release_manifest.json')
     parser.add_argument('--tmc3-bin', type=Path, help='Verified GPCC binary directory to prepend to PATH')
     parser.add_argument('--gpu', type=int, help='Optional physical GPU; otherwise preserve CUDA_VISIBLE_DEVICES')

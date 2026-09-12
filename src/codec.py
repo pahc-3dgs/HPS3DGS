@@ -1,4 +1,4 @@
-"""Compact PAHC-3DGS representation and storage helpers.
+"""Compact HPS3DGS representation and storage helpers.
 
 Format version 0.2 fixes two correctness problems of the 0.1 writer:
 
@@ -133,7 +133,7 @@ def instance_scale_log_factor(scale_factor: torch.Tensor):
 
 @dataclass
 class CompactScene:
-    """Hierarchical compact representation used by PAHC-3DGS.
+    """Hierarchical compact representation used by HPS3DGS.
 
     ``templates`` maps ``str(template_id)`` -> ``{"indices": LongTensor[N]}``
     pointing into ``static_gaussians`` (the *canonical* template rows), or, for

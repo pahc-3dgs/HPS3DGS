@@ -1,4 +1,4 @@
-"""Assemble a PAHC + shared-HAC++ bitstream bundle from a CompactScene.
+"""Assemble a HPS3DGS + shared-HAC++ bitstream bundle from a CompactScene.
 
 This is where the "shared" contract becomes concrete: the bundle holds one
 ``hacpp/`` stream directory and one shared decoder; every component instance
@@ -273,7 +273,7 @@ def build_bundle(
         once and referenced once by ``shared_decoder``; hash/mask streams stay
         in ``streams``.
     scene:
-        PAHC ``CompactScene`` contributing ``instances.npz``/``owners.npz``.
+        HPS3DGS ``CompactScene`` contributing ``instances.npz``/``owners.npz``.
         ``None`` packs a single-scene HAC++ codec bundle (``codec_only``).
     decoder_config:
         Optional explicit architecture config; overrides the values recorded

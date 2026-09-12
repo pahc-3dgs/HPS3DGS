@@ -125,7 +125,7 @@ def cpu_checks(root, runtime, output, fixtures):
     results = []
     unit_runner = str(root / 'scripts/run_unittest_checks.py')
     for name, route, cwd, tail in [
-        ('pahc_contracts', 'pahc', root, [unit_runner, '--discover', 'tests', '--report', str(output / 'pahc_unittest.json')]),
+        ('hps_3dgs_contracts', 'hps-3dgs', root, [unit_runner, '--discover', 'tests', '--report', str(output / 'hps-3dgs_unittest.json')]),
         ('geo33_geometry', 'geo33', root / 'third_party/SegAnyGAussians', [unit_runner, '--module', 'test_geo33_geometry_cpu', '--report', str(output / 'geometry_unittest.json')]),
         ('fig7_entrypoints', 'fig7', root / 'third_party/SegAnyGAussians', [unit_runner, '--module', 'test_fig7_entrypoint_bindings', '--report', str(output / 'fig7_unittest.json')]),
         ('fig7_packet', 'fig7', root / 'third_party/SegAnyGAussians', ['test_fig7_packet.py']),

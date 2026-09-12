@@ -61,7 +61,7 @@ class RefinementConfig:
 
 
 @dataclass
-class PAHCConfig:
+class HPS3DGSConfig:
     """Top-level geometry compression configuration."""
 
     feature_dim: int = 32
@@ -555,7 +555,7 @@ def refine_matched_components(
     config=None,
     keep_appearance: bool = True,
 ):
-    config = config or PAHCConfig()
+    config = config or HPS3DGSConfig()
     refinement = config.refinement
     xyz = gaussians.get_xyz.detach()
     alignments = []
@@ -659,7 +659,7 @@ def run_geo32_compression(
     config=None,
     labels=None,
 ):
-    config = config or PAHCConfig()
+    config = config or HPS3DGSConfig()
     discovery = run_geometry_compression(
         gaussians.get_xyz.detach(),
         features,
@@ -692,12 +692,12 @@ def run_geometry_compression(
     xyz: torch.Tensor,
     features: torch.Tensor,
     scaling: torch.Tensor | None = None,
-    config: PAHCConfig | None = None,
+    config: HPS3DGSConfig | None = None,
     labels: torch.Tensor | None = None,
 ):
     """Run the non-rendering geometry discovery path used by smoke tests and dry runs."""
 
-    config = config or PAHCConfig()
+    config = config or HPS3DGSConfig()
     if labels is None:
         labels = micro_clustering(xyz, features, config.clustering)
         labels = split_label_spatially(
