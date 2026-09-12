@@ -1,0 +1,196 @@
+{
+  "schema_version": 1,
+  "source_manifest": "/disk3/ydz/experiments/fig7_taur_independent_20260911/source_manifest.json",
+  "source_manifest_sha256": "397a13c9cb604ca97d6c36958255fd28bdcbcc3140113d87559f5eb8bae2c6f1",
+  "geo32_sha256": "39f7fad7b283cee210df7fd59c8625e770485576cffd03473cfc732af7a6b0f5",
+  "scenes": {
+    "zxa1-12": {
+      "source_path": "/disk3/ydz/data/zxa1-12",
+      "files": {
+        "raw": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/fa1af0fe-7/point_cloud/iteration_30000/scene_point_cloud.ply",
+          "sha256": "8539c4db3cb02a68ffcc3363a23dbf0323073efd0f6e19420a4b4b25a5def7c2",
+          "bytes": 26323507
+        },
+        "feature": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/fa1af0fe-7/point_cloud/iteration_10000/contrastive_feature_point_cloud.ply",
+          "sha256": "18dc742a1dc724712f272d584e682f12741f1afc87770cf8471685dddff0b505",
+          "bytes": 19530188
+        },
+        "labels": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/fa1af0fe-7/micro_cluster_labels.pt",
+          "sha256": "c580435cc7b167586fbf537e303cea828cd529ebe1064120a992290bfaba4d8b",
+          "bytes": 850333
+        },
+        "scale_gate": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/fa1af0fe-7/point_cloud/iteration_10000/scale_gate.pt",
+          "sha256": "eccca854e0a4d4ab05e57e2132574e03b8f52f1cbc50cef90403f0bd27691ca3",
+          "bytes": 1834
+        }
+      }
+    },
+    "real-1-80-test2": {
+      "source_path": "/disk3/ydz/data/real-1-80-test2",
+      "files": {
+        "raw": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/real-1-80-test2/point_cloud/iteration_30000/scene_point_cloud.ply",
+          "sha256": "48b979cd97300c8b18714a69a610299e994bd4079fee17fdd7859ac0cde308b6",
+          "bytes": 17590930
+        },
+        "feature": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/real-1-80-test2/point_cloud/iteration_10000/contrastive_feature_point_cloud.ply",
+          "sha256": "334df8e8ce2b30e48677b97ddf3ec9e79dfba7f4cb55e6c773bc327da13ada07",
+          "bytes": 13051179
+        },
+        "labels": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/real-1-80-test2/micro_cluster_labels.pt",
+          "sha256": "d3f56d65c161b84d5a7a7bd658671f0b04a4a9592713dd46dfd73492467da97a",
+          "bytes": 568605
+        },
+        "scale_gate": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/real-1-80-test2/point_cloud/iteration_10000/scale_gate.pt",
+          "sha256": "67bf88d9df7dc2bf0053e3ce884a0048ba681b02c2090556384c94a023ab68df",
+          "bytes": 1834
+        }
+      }
+    },
+    "proba2-2": {
+      "source_path": "/disk3/ydz/data/proba2-2",
+      "files": {
+        "raw": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/proba2-2/point_cloud/iteration_30000/scene_point_cloud.ply",
+          "sha256": "3ceb07d5f8aa32f5e104bdb56f796148d687182ef80facbaf152f332c4aed74f",
+          "bytes": 8058306
+        },
+        "feature": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/proba2-2/point_cloud/iteration_10000/contrastive_feature_point_cloud.ply",
+          "sha256": "ba7c3abdc564bf7f067063bb05440c59fc4f49aecd144a335ce859e5d6664beb",
+          "bytes": 5978587
+        },
+        "labels": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/proba2-2/micro_cluster_labels.pt",
+          "sha256": "e72b16b9be59047a26aed4d158fe6ca74e0406dfb849aa9c57e0fb6b604d69b4",
+          "bytes": 261149
+        },
+        "scale_gate": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/proba2-2/point_cloud/iteration_10000/scale_gate.pt",
+          "sha256": "6161c813011c75331ad6b944a0c5a856f74bd2a02e1d8a2a2901a0d7e3b66c49",
+          "bytes": 1834
+        }
+      }
+    },
+    "acrim-2": {
+      "source_path": "/disk3/ydz/data/acrim-2",
+      "files": {
+        "raw": {
+          "path": "/disk3/ydz/experiments/gszip_multiscene_20260909/acrim_alignment/raw_normalized.ply",
+          "sha256": "9f56aaff3306bde8ccd9584d60615604fd52d7e1220137b086586a125aba6f2d",
+          "bytes": 17964914
+        },
+        "feature": {
+          "path": "/disk3/ydz/experiments/gszip_multiscene_20260909/acrim_alignment/feature_normalized.ply",
+          "sha256": "49a0fc04bcfbbb5019ee74f1a6cf37ec32f0af339ee0b8ea2d003269012e0e0c",
+          "bytes": 13328651
+        },
+        "labels": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/acrim-2/micro_cluster_labels.pt",
+          "sha256": "0ef671f0d84a7094567a73acad6343bcaf19cd104f7ae1056a7b2303248102ac",
+          "bytes": 580701
+        },
+        "scale_gate": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/acrim-2/point_cloud/iteration_10000/scale_gate.pt",
+          "sha256": "c162ba2d1817279f612b610d5b8e577995f5c2cc8b5f18578470475a392bbab0",
+          "bytes": 1834
+        }
+      },
+      "alignment": {
+        "formula": "xyz_current = scale * xyz_saved + translation; log_scale_current = log_scale_saved + log(scale)",
+        "scale": 0.5,
+        "translation": [
+          2.4069288229178198e-17,
+          0.08333333333333307,
+          -7.386127300057499e-19
+        ],
+        "camera_max_abs_residual": 3.885780586188048e-16,
+        "camera_pairs": 150,
+        "same_rotations_and_intrinsics": true,
+        "source_cameras_sha256": "961f6dc82aa41c28a6fa5bb241994d1d06443eaa5715f4de7e71ef3844176b39",
+        "camera_comparison_sha256": "29cbe6b95b7bf3e7543b8b97f36fc91406b170692ce99413388d96aa7d88d482",
+        "not_fitted_to_images": true,
+        "fields": {
+          "raw": {
+            "source": {
+              "path": "/disk3/ydz/code/SegAnyGAussians/output/acrim-2/point_cloud/iteration_30000/scene_point_cloud.ply",
+              "sha256": "5e9298e831d76a1a1d8d65f2ac378a94341f99c323645911c3b9816447f5a0ba",
+              "bytes": 17964914
+            },
+            "output": {
+              "path": "/disk3/ydz/experiments/gszip_multiscene_20260909/acrim_alignment/raw_normalized.ply",
+              "sha256": "9f56aaff3306bde8ccd9584d60615604fd52d7e1220137b086586a125aba6f2d",
+              "bytes": 17964914
+            },
+            "rows": 72433,
+            "unchanged_fields_bitexact": true,
+            "transformed_fields": [
+              "scale_0",
+              "scale_1",
+              "scale_2",
+              "x",
+              "y",
+              "z"
+            ]
+          },
+          "feature": {
+            "source": {
+              "path": "/disk3/ydz/code/SegAnyGAussians/output/acrim-2/point_cloud/iteration_10000/contrastive_feature_point_cloud.ply",
+              "sha256": "ba98a19bff7ed7d6e439865424274c53da55a59a75658b8403b53371c3fa6304",
+              "bytes": 13328651
+            },
+            "output": {
+              "path": "/disk3/ydz/experiments/gszip_multiscene_20260909/acrim_alignment/feature_normalized.ply",
+              "sha256": "49a0fc04bcfbbb5019ee74f1a6cf37ec32f0af339ee0b8ea2d003269012e0e0c",
+              "bytes": 13328651
+            },
+            "rows": 72433,
+            "unchanged_fields_bitexact": true,
+            "transformed_fields": [
+              "scale_0",
+              "scale_1",
+              "scale_2",
+              "x",
+              "y",
+              "z"
+            ]
+          }
+        },
+        "semantic_xyz_bitexact_after_transform": true,
+        "original_inputs_unchanged": true
+      }
+    },
+    "VenusE-1": {
+      "source_path": "/disk3/ydz/data/VenusE-1",
+      "files": {
+        "raw": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/VenusE-1/point_cloud/iteration_30000/scene_point_cloud.ply",
+          "sha256": "62b358cd6b7f3270f3d2741874e652bf68c1b8a02ae315785f4463ee26849788",
+          "bytes": 21343418
+        },
+        "feature": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/VenusE-1/point_cloud/iteration_10000/contrastive_feature_point_cloud.ply",
+          "sha256": "82dc77c2eec6b22904e519de6d8e456574efcb2394d2c68b82c4cd91f2f0378e",
+          "bytes": 15835283
+        },
+        "labels": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/VenusE-1/micro_cluster_labels.pt",
+          "sha256": "8e6a5af25f551441445b9470457325929f5f6d93009770f70f59ad0655b27e5d",
+          "bytes": 689693
+        },
+        "scale_gate": {
+          "path": "/disk3/ydz/code/SegAnyGAussians/output/VenusE-1/point_cloud/iteration_10000/scale_gate.pt",
+          "sha256": "318597ffed49f078fd3fb1ad6729d6cc89213ff87b13c210cb8fe38920f9411b",
+          "bytes": 1834
+        }
+      }
+    }
+  }
+}

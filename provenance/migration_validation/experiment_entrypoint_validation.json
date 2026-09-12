@@ -1,0 +1,47 @@
+{
+  "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "syntax_target": "Python 3.8",
+  "files": {
+    "geo33_multiscene.py": {
+      "source": ".rd-multiscene-20260909\\run_geo33_scene.py",
+      "source_sha256": "dd57d26be88c86d8123305f1551e457a2a122ef095cad7a876356301bf3b7671",
+      "migrated_sha256": "d250feeecbae1def466e39a4da73586e0a1e35846853410b75294ab940acc240",
+      "python38_syntax": true,
+      "help_exit_code": 0,
+      "no_hardcoded_old_roots": true
+    },
+    "align_acrim_source.py": {
+      "source": ".rd-multiscene-20260909\\align_acrim_source.py",
+      "source_sha256": "8d6174d918d76600acc11d45b77f6c95b3f9176153a3f2f01fabb24892dea957",
+      "migrated_sha256": "97be67b298e549a4045496632e6985cc1c0eafe7cf29f5f24d2caaeeb53c0fb6",
+      "python38_syntax": true,
+      "help_exit_code": 0,
+      "no_hardcoded_old_roots": true
+    },
+    "hacpp_bundle_only_render.py": {
+      "source": ".pahc-hacpp-rd-20260910\\bundle_only_render.py",
+      "source_sha256": "46070af882243ef2b33290913a7af9a645da6e793a41ef618bb587d54a5f0272",
+      "migrated_sha256": "9b779c9bd58d48df40650e64ca6e1864a039945587fd8ecad1b016ab3f396710",
+      "python38_syntax": true,
+      "help_exit_code": 0,
+      "no_hardcoded_old_roots": true
+    },
+    "hacpp_validate_backend.py": {
+      "source": ".pahc-hacpp-rd-20260910\\validate_backend.py",
+      "source_sha256": "54befb2a8507037e237eaf8eaaca721005eaa7d883c95464cedef310a52d40aa",
+      "migrated_sha256": "92e819f0301586f69c999afbfa058a263dd8735eb5a22b973a0a99bcfd3a54eb",
+      "python38_syntax": true,
+      "help_exit_code": 0,
+      "no_hardcoded_old_roots": true
+    }
+  },
+  "algorithm_checks": {
+    "load_cameras_ast_unchanged": true,
+    "render_saved_ast_unchanged": true,
+    "restore_hash_before_entropy_decode_ast_unchanged": true,
+    "geo33_k_loop_ast_unchanged": true,
+    "alignment_ply_transform_loop_ast_unchanged": true,
+    "alignment_camera_math_ast_unchanged": true
+  },
+  "gpu_experiments_run": false
+}

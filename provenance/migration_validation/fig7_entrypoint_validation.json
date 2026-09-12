@@ -1,0 +1,45 @@
+{
+  "python": "3.14.3 (tags/v3.14.3:323c59a, Feb  3 2026, 16:04:56) [MSC v.1944 64 bit (AMD64)]",
+  "syntax_target": "Python 3.8",
+  "files": {
+    "fig7_taur.py": {
+      "source_sha256": "aa5253d9550d26d70b6c81739b791585b71f449d7f1c512270c38140ffe0308a",
+      "migrated_sha256": "e2dd1cc8bb70c336fffb558f7cfef8f1ca82d9bf8ed1fb758fe690b19f462c20",
+      "help_exit_code": 0,
+      "python38_syntax": true,
+      "no_hardcoded_old_roots": true
+    },
+    "run_independent_lane.py": {
+      "source_sha256": "0048a84179086a740fb1a638ad2077812defa9cbb7b37b5d1b271282911cf0c4",
+      "migrated_sha256": "52171dd667d25225012eb9b84e262b09822e96b14efb6cacc9e54616f492d6e9",
+      "help_exit_code": 0,
+      "python38_syntax": true,
+      "no_hardcoded_old_roots": true
+    },
+    "finalize_fig7_packets.py": {
+      "source_sha256": "c6bd6a9c6181167e31aa3721116198bcdc0d30cd0117d3e7fe475ce5e3935b8e",
+      "migrated_sha256": "c223418ee42d42412d10ec519971738b071385ba221a63804cae91d9e692f8fc",
+      "help_exit_code": 0,
+      "python38_syntax": true,
+      "no_hardcoded_old_roots": true
+    },
+    "test_canonical_fig7.py": {
+      "source_sha256": "9c3f825cc90aacdf7b96d0e723f2f06597034ded2f4c5ae29ec2a61230870352",
+      "migrated_sha256": "760f7dd1eda44f4f1d82e975d71923f11efaae613237822a996aa5c4ec8671ea",
+      "help_exit_code": 0,
+      "python38_syntax": true,
+      "no_hardcoded_old_roots": true
+    }
+  },
+  "algorithm_checks": {
+    "repack_ast_exactly_unchanged": true,
+    "prepare_unchanged_after_runtime_loader": true,
+    "train_seed_through_optimization_ptq_and_encode_ast_unchanged": true,
+    "evaluate_decode_and_render_ast_unchanged": true
+  },
+  "cpu_binding_tests": {
+    "passed": 4,
+    "failed": 0
+  },
+  "gpu_experiments_run": false
+}

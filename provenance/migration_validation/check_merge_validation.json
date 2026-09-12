@@ -1,0 +1,359 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "scope": "Actual local Git repositories and recursive local submodules; fixture command checks merge-gate report semantics only. No GPU or research algorithm validation was performed.",
+  "checker": "E:\\Satellite Defend\\Mission\\gszip\\.hps3dgs-integration-20260912\\staging\\scripts\\check_merge.py",
+  "checker_sha256": "7b0cce80c5b534630419d6a98ad91d4358d799997c7dfd17ce630ced94c27a8f",
+  "python": "C:\\Python314\\python.exe",
+  "python38_ast_parse": "passed",
+  "fixture_root": "E:\\Satellite Defend\\Mission\\gszip\\.hps3dgs-integration-20260912\\check_merge-fixtures-z28eiufx",
+  "candidate_root": "E:\\Satellite Defend\\Mission\\gszip\\.hps3dgs-integration-20260912\\check_merge-fixtures-z28eiufx\\candidate with spaces",
+  "candidate_head": "df59224f11e785c9354bd5134874ba5925838935",
+  "case_count": 23,
+  "cases": [
+    {
+      "case": "good_all_profiles",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "status": "passed",
+      "gate_status": "passed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.884,
+      "observed_errors": []
+    },
+    {
+      "case": "good_source_only_documentation",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "status": "passed",
+      "gate_status": "passed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.921,
+      "observed_errors": []
+    },
+    {
+      "case": "good_absolute_repository_paths",
+      "expected_exit": 0,
+      "actual_exit": 0,
+      "status": "passed",
+      "gate_status": "passed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.947,
+      "observed_errors": []
+    },
+    {
+      "case": "reject_stale_root_head",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.935,
+      "observed_errors": [
+        "Missing passed validation profiles: cpu",
+        "One or more supplied reports failed candidate validation",
+        "Report root_head does not match candidate HEAD"
+      ]
+    },
+    {
+      "case": "reject_stale_manifest",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.941,
+      "observed_errors": [
+        "Missing passed validation profiles: gpu",
+        "One or more supplied reports failed candidate validation",
+        "Report code_manifest_sha256 does not match current release_manifest.json"
+      ]
+    },
+    {
+      "case": "reject_missing_gpu_profile",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.919,
+      "observed_errors": [
+        "Missing passed validation profiles: gpu"
+      ]
+    },
+    {
+      "case": "reject_empty_cpu_tests",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.888,
+      "observed_errors": [
+        "Missing passed validation profiles: cpu",
+        "One or more supplied reports failed candidate validation",
+        "Every validation profile requires at least one nonempty check",
+        "CPU/GPU report has no successful executed check with command and returncode 0"
+      ]
+    },
+    {
+      "case": "reject_nonzero_test_exit",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.886,
+      "observed_errors": [
+        "Missing passed validation profiles: cpu",
+        "One or more supplied reports failed candidate validation",
+        "Check gate report schema fixture (not GPU validation) has a nonzero or invalid returncode",
+        "CPU/GPU report has no successful executed check with command and returncode 0"
+      ]
+    },
+    {
+      "case": "reject_failed_check",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.912,
+      "observed_errors": [
+        "Missing passed validation profiles: gpu",
+        "One or more supplied reports failed candidate validation",
+        "Check missing artifact is failed, missing, or not passed"
+      ]
+    },
+    {
+      "case": "reject_missing_check_status",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.875,
+      "observed_errors": [
+        "Missing passed validation profiles: cpu",
+        "One or more supplied reports failed candidate validation",
+        "Check gate report schema fixture (not GPU validation) is failed, missing, or not passed"
+      ]
+    },
+    {
+      "case": "reject_no_executed_test",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.9,
+      "observed_errors": [
+        "Missing passed validation profiles: gpu",
+        "One or more supplied reports failed candidate validation",
+        "CPU/GPU report has no successful executed check with command and returncode 0"
+      ]
+    },
+    {
+      "case": "reject_report_failed_status",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.928,
+      "observed_errors": [
+        "Missing passed validation profiles: source",
+        "One or more supplied reports failed candidate validation",
+        "Report status is not passed"
+      ]
+    },
+    {
+      "case": "reject_wrong_schema",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.935,
+      "observed_errors": [
+        "Missing passed validation profiles: source",
+        "One or more supplied reports failed candidate validation",
+        "Unsupported or missing schema_version (expected 1)"
+      ]
+    },
+    {
+      "case": "reject_stale_nested_head",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.898,
+      "observed_errors": [
+        "Missing passed validation profiles: gpu",
+        "One or more supplied reports failed candidate validation",
+        "Reported repository head is stale: third_party/HAC/nested/leaf"
+      ]
+    },
+    {
+      "case": "reject_missing_recursive_repository",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.888,
+      "observed_errors": [
+        "Missing passed validation profiles: cpu",
+        "One or more supplied reports failed candidate validation",
+        "Report omits recursive repositories: third_party/HAC/nested/leaf"
+      ]
+    },
+    {
+      "case": "reject_dirty_root",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.887,
+      "observed_errors": [
+        "Repository is dirty: . (1 changes)"
+      ]
+    },
+    {
+      "case": "reject_untracked_root",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.888,
+      "observed_errors": [
+        "Repository is dirty: . (1 changes)"
+      ]
+    },
+    {
+      "case": "reject_dirty_nested_submodule",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.92,
+      "observed_errors": [
+        "Repository is dirty: . (1 changes)",
+        "Repository is dirty: third_party/HAC (1 changes)",
+        "Repository is dirty: third_party/HAC/nested/leaf (1 changes)"
+      ]
+    },
+    {
+      "case": "reject_parent_gitlink_mismatch",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.876,
+      "observed_errors": [
+        "Repository is dirty: . (1 changes)",
+        "Repository is dirty: third_party/HAC (1 changes)",
+        "Submodule third_party/HAC/nested/leaf HEAD 246f5fcdb784e8b3fc3668c903bb54e6e4fdd751 differs from parent gitlink d1e12002b8c5137a71cb5fc73498f37d87b59cec",
+        "Missing passed validation profiles: cpu, gpu, source",
+        "One or more supplied reports failed candidate validation",
+        "Reported repository head is stale: third_party/HAC/nested/leaf",
+        "Reported repository head is stale: third_party/HAC/nested/leaf",
+        "Reported repository head is stale: third_party/HAC/nested/leaf"
+      ]
+    },
+    {
+      "case": "reject_uninitialized_nested_repository",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": false,
+      "seconds": 0.413,
+      "observed_errors": [
+        "Repository third_party/HAC/nested/leaf: Expected an initialized repository at E:\\Satellite Defend\\Mission\\gszip\\.hps3dgs-integration-20260912\\check_merge-fixtures-z28eiufx\\candidate with spaces\\third_party\\HAC\\nested\\leaf, found parent repository E:\\Satellite Defend\\Mission\\gszip\\.hps3dgs-integration-20260912\\check_merge-fixtures-z28eiufx\\candidate with spaces\\third_party\\HAC",
+        "Missing passed validation profiles: cpu, gpu, source",
+        "One or more supplied reports failed candidate validation",
+        "Report contains unknown repositories: third_party/HAC/nested/leaf",
+        "Report contains unknown repositories: third_party/HAC/nested/leaf",
+        "Report contains unknown repositories: third_party/HAC/nested/leaf"
+      ]
+    },
+    {
+      "case": "reject_missing_manifest",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.882,
+      "observed_errors": [
+        "Repository is dirty: . (1 changes)",
+        "Cannot read release_manifest.json: [Errno 2] No such file or directory: 'E:\\\\Satellite Defend\\\\Mission\\\\gszip\\\\.hps3dgs-integration-20260912\\\\check_merge-fixtures-z28eiufx\\\\candidate with spaces\\\\release_manifest.json'",
+        "Missing passed validation profiles: cpu, gpu, source",
+        "One or more supplied reports failed candidate validation",
+        "Report code_manifest_sha256 does not match current release_manifest.json",
+        "Report code_manifest_sha256 does not match current release_manifest.json",
+        "Report code_manifest_sha256 does not match current release_manifest.json"
+      ]
+    },
+    {
+      "case": "reject_empty_source_checks",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.947,
+      "observed_errors": [
+        "Missing passed validation profiles: source",
+        "One or more supplied reports failed candidate validation",
+        "Every validation profile requires at least one nonempty check"
+      ]
+    },
+    {
+      "case": "reject_empty_source_check_object",
+      "expected_exit": 1,
+      "actual_exit": 1,
+      "status": "passed",
+      "gate_status": "failed",
+      "report_bytes_preserved": true,
+      "repository_state_preserved": true,
+      "seconds": 0.925,
+      "observed_errors": [
+        "Missing passed validation profiles: source",
+        "One or more supplied reports failed candidate validation",
+        "Check check_0 is failed, missing, or not passed"
+      ]
+    }
+  ],
+  "fixtures_retained_for_review": true,
+  "final_candidate_clean": true,
+  "source_profile_requires_nonempty_checks": true
+}

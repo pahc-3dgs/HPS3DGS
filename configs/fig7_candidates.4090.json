@@ -1,0 +1,24 @@
+{
+  "scenes": {
+    "zxa1-12": {
+      "path": "/disk3/ydz/experiments/fig7_taur_independent_20260911/zxa1-12/prepare/candidates.pt",
+      "sha256": "ec2d4514b990f23183558191691a0eaccf7280b18235bca63043e2a0176f9b69"
+    },
+    "real-1-80-test2": {
+      "path": "/disk3/ydz/experiments/fig7_taur_independent_20260911/real-1-80-test2/prepare/candidates.pt",
+      "sha256": "e54dd38843db3fb9ce8dd495af5328db4a3c86baa96aa891cc9238ed4c26258c"
+    },
+    "proba2-2": {
+      "path": "/disk3/ydz/experiments/fig7_taur_independent_20260911/proba2-2/prepare/candidates.pt",
+      "sha256": "948cebf80a96bbdadcf8425d82c61c22a57dd3871d45f2811d5c5a6118b51540"
+    },
+    "acrim-2": {
+      "path": "/disk3/ydz/experiments/fig7_taur_20260910/acrim-2/prepare/candidates.pt",
+      "sha256": "cff9eff847e32a23ab65f635a0323a72a01f05ba3879dc11d12770bcc0b18d23"
+    },
+    "VenusE-1": {
+      "path": "/disk3/ydz/experiments/fig7_taur_20260910/VenusE-1/prepare/candidates.pt",
+      "sha256": "85fbf4681a65509ea61e947ed8d2d6443e21d272a1d8519d6679e15d6f8ffa68"
+    }
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "description": "4090 / 5cardsmachine. Python and extension imports checked read-only on 2026-09-12. Native extension paths name the stable copies prepared during HPS3DGS integration; see provenance below. No old worktree is used as a script or cwd.",
+  "runtimes": {
+    "saga": {
+      "python": "/disk3/ydz/.conda/envs/sacgs/bin/python",
+      "pythonpath": [],
+      "path_prepend": [],
+      "required_files": [],
+      "observed_versions": {"python": "3.8.20", "torch": "2.4.1+cu121", "cuda_build": "12.1"}
+    },
+    "hac_train": {
+      "python": "/disk3/ydz/.conda/envs/cgs_test/bin/python",
+      "pythonpath": [
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder",
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic"
+      ],
+      "path_prepend": [],
+      "required_files": [
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/_gridencoder.so",
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/arithmetic.so"
+      ],
+      "env": {"WANDB_MODE": "disabled"},
+      "observed_versions": {"python": "3.8.20", "torch": "2.4.1+cu121", "cuda_build": "12.1"}
+    },
+    "hacpp_train": {
+      "python": "/disk3/ydz/.conda/envs/cgs_test/bin/python",
+      "pythonpath": [
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder",
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic"
+      ],
+      "path_prepend": ["/disk3/ydz/pahc_hacpp_runtime/bin"],
+      "required_files": [
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/_gridencoder.so",
+        "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/arithmetic.so",
+        "/disk3/ydz/pahc_hacpp_runtime/bin/tmc3"
+      ],
+      "env": {"WANDB_MODE": "disabled"},
+      "observed_versions": {"python": "3.8.20", "torch": "2.4.1+cu121", "cuda_build": "12.1"}
+    },
+    "codec": {
+      "python": "/disk3/ydz/.conda/envs/pahc_hacpp_py112/bin/python",
+      "pythonpath": [],
+      "path_prepend": ["/disk3/ydz/pahc_hacpp_runtime/bin"],
+      "required_files": ["/disk3/ydz/pahc_hacpp_runtime/bin/tmc3"],
+      "observed_versions": {"python": "3.8.18", "torch": "1.12.1+cu113", "cuda_build": "11.3"}
+    }
+  },
+  "extension_provenance": {
+    "hac_gridencoder": {
+      "source_directory": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder",
+      "source_repository_head": "08f523351cbafaa528317595d5fd9c16d061aaeb",
+      "binary": "_gridencoder.so",
+      "sha256": "14cdb71755758022ae51c505ff03532e7dcc354c1dc60a7daffb3a98c2a7e5b4"
+    },
+    "hacpp_gridencoder": {
+      "source_directory": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder",
+      "source_repository_head": "8e5f955e946b47509f3a17bca2b5dcc1a62c8d98",
+      "binary": "_gridencoder.so",
+      "sha256": "14cdb71755758022ae51c505ff03532e7dcc354c1dc60a7daffb3a98c2a7e5b4"
+    },
+    "arithmetic": {
+      "source_directory": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic",
+      "source_repository_head": "8e5f955e946b47509f3a17bca2b5dcc1a62c8d98",
+      "binary": "arithmetic.so",
+      "sha256": "e5000e79b21773a4280a1bc86d0742bd5610964f6dad65e7a68b86f7b578a77d"
+    },
+    "codec_gridencoder": {
+      "path": "/disk3/ydz/.conda/envs/pahc_hacpp_py112/lib/python3.8/site-packages/_gridencoder.cpython-38-x86_64-linux-gnu.so",
+      "sha256": "47e62e1159da695c11099a6a76cf471d5cf5d2516249f63912c2b2327b422671"
+    },
+    "codec_arithmetic": {
+      "path": "/disk3/ydz/.conda/envs/pahc_hacpp_py112/lib/python3.8/site-packages/arithmetic.cpython-38-x86_64-linux-gnu.so",
+      "sha256": "a2f61d3ee42b0a36ba586f16c138275a46544d3178c0bb1ef2cc420bb487d78d"
+    },
+    "gpcc": {
+      "path": "/disk3/ydz/pahc_hacpp_runtime/bin/tmc3",
+      "resolved_path": "/disk3/ydz/pahc_hacpp_runtime/mpeg-pcc-tmc13/build/tmc3/tmc3"
+    }
+  }
+}

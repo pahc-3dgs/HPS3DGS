@@ -1,0 +1,153 @@
+{
+  "extension_root": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test",
+  "weights_root": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_weights",
+  "extensions": [
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/__init__.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/__init__.py",
+      "sha256": "00570fbd96d5546ca2ff8cdda6146f253232bdbc38d92078f4af17ba4530ffe8",
+      "bytes": 29
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/_gridencoder.so",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/_gridencoder.so",
+      "sha256": "14cdb71755758022ae51c505ff03532e7dcc354c1dc60a7daffb3a98c2a7e5b4",
+      "bytes": 5954960
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/backend.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/backend.py",
+      "sha256": "e3cd8d92081a78dbd27bbf3823b2d230cf14c74c7af872159ae0f5f9f682d6db",
+      "bytes": 1362
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/grid.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/grid.py",
+      "sha256": "0bdb32a9d55032d7a232dd2cdda27ce9517d16c43b23d0b9a1ad494f8ce017c2",
+      "bytes": 8065
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/setup.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/setup.py",
+      "sha256": "ed3db556416f3398f0a22d1334981fad50c7ae06ebc9fe30ed883bd7a0464962",
+      "bytes": 1626
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/src/bindings.cpp",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/src/bindings.cpp",
+      "sha256": "cc08bae598e2114b6a021698b8db293698fe5655e480e7718ba4969980e5c24d",
+      "bytes": 788
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/src/gridencoder.cu",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/src/gridencoder.cu",
+      "sha256": "ebc457a9f34e740c189614fdae88ab2ce46633cf5eaf1eb4189907316f9f0089",
+      "bytes": 111677
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC/submodules/gridencoder/gridencoder/src/gridencoder.h",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hac_gridencoder/src/gridencoder.h",
+      "sha256": "c2cfb1a96a9fe898c1c35f9b28f9898506acb5557088f99a6f9e606efb693d71",
+      "bytes": 4469
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/__init__.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/__init__.py",
+      "sha256": "00570fbd96d5546ca2ff8cdda6146f253232bdbc38d92078f4af17ba4530ffe8",
+      "bytes": 29
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/_gridencoder.so",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/_gridencoder.so",
+      "sha256": "14cdb71755758022ae51c505ff03532e7dcc354c1dc60a7daffb3a98c2a7e5b4",
+      "bytes": 5954960
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/backend.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/backend.py",
+      "sha256": "e3cd8d92081a78dbd27bbf3823b2d230cf14c74c7af872159ae0f5f9f682d6db",
+      "bytes": 1362
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/grid.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/grid.py",
+      "sha256": "0bdb32a9d55032d7a232dd2cdda27ce9517d16c43b23d0b9a1ad494f8ce017c2",
+      "bytes": 8065
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/setup.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/setup.py",
+      "sha256": "3aeae28dcde49ac3d7c70c40cb0b08d55e153d644a050c80fae9ad1f9a55a699",
+      "bytes": 1886
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/src/bindings.cpp",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/src/bindings.cpp",
+      "sha256": "cc08bae598e2114b6a021698b8db293698fe5655e480e7718ba4969980e5c24d",
+      "bytes": 788
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/src/gridencoder.cu",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/src/gridencoder.cu",
+      "sha256": "ebc457a9f34e740c189614fdae88ab2ce46633cf5eaf1eb4189907316f9f0089",
+      "bytes": 111677
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/gridencoder/gridencoder/src/gridencoder.h",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/hacpp_gridencoder/src/gridencoder.h",
+      "sha256": "c2cfb1a96a9fe898c1c35f9b28f9898506acb5557088f99a6f9e606efb693d71",
+      "bytes": 4469
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic/arithmetic.cpp",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/arithmetic.cpp",
+      "sha256": "236a416c63d2e6e6cfbbc30f157827e9d5f163d9ecf57254a58b4322186443b8",
+      "bytes": 1225
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic/arithmetic.so",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/arithmetic.so",
+      "sha256": "e5000e79b21773a4280a1bc86d0742bd5610964f6dad65e7a68b86f7b578a77d",
+      "bytes": 259840
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic/arithmetic_kernel.cu",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/arithmetic_kernel.cu",
+      "sha256": "f158d6406de1ef114b9afe6a8a2d6ad5519a28515c5449b9baa35811320cfba8",
+      "bytes": 13911
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic/include/utils.h",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/include/utils.h",
+      "sha256": "b7b9377505df75d2f1ab03ab69475b7a92189f97ba769a536651aaf500ebe127",
+      "bytes": 818
+    },
+    {
+      "source": "/disk3/ydz/code/test4gszip/HAC-plus/submodules/arithmetic/arithmetic/setup.py",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_extensions/cgs_test/arithmetic/setup.py",
+      "sha256": "88a3a1041065fcd0d59a580438083329018c92ea73ab5b2946c8de7a6ef21c07",
+      "bytes": 813
+    }
+  ],
+  "weights": [
+    {
+      "source": "/disk3/ydz/code/SegAnyGAussians/CLIP-ViT-B-16-laion2B-s34B-b88K/open_clip_pytorch_model.bin",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_weights/clip-vit-b16/open_clip_pytorch_model.bin",
+      "sha256": "1f16b1274ca25493b1f36225efe81d05f66a3f33c487acd1a07c5ba87920de6f",
+      "bytes": 598529951
+    },
+    {
+      "source": "/disk3/ydz/code/SegAnyGAussians/CLIP-ViT-B-16-laion2B-s34B-b88K/open_clip_model.safetensors",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_weights/clip-vit-b16/open_clip_model.safetensors",
+      "sha256": "3f25d29d3cc74e1d25d47e0593b4dd0864ced1e9b4d8e486a247ca4502f227f1",
+      "bytes": 598516980
+    },
+    {
+      "source": "/disk3/ydz/code/SegAnyGAussians/third_party/segment-anything/sam_ckpt/sam_vit_h_4b8939.pth",
+      "path": "/disk3/ydz/pahc_hacpp_runtime/hps3dgs_weights/sam_vit_h_4b8939.pth",
+      "sha256": "a7bf3b02f3ebf1267aba913ff637d9a2d5c33d3173bb679e46d9f338c26f262e",
+      "bytes": 2564550879
+    }
+  ],
+  "note": "External runtime/model inputs. Copied from verified existing local files; no downloads or environment changes."
+}

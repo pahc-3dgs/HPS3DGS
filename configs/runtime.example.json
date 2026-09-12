@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "description": "Copy and configure explicit existing environments. Relative configuration paths resolve from the HPS3DGS release root; native arguments retain upstream cwd semantics. Runtime binaries are external to the Git source snapshots.",
+  "runtimes": {
+    "saga": {
+      "python": "/path/to/conda/envs/sacgs/bin/python",
+      "pythonpath": [],
+      "path_prepend": [],
+      "required_files": []
+    },
+    "hac_train": {
+      "python": "/path/to/conda/envs/cgs_test/bin/python",
+      "pythonpath": [
+        "/path/to/runtime/cgs_test/hac_gridencoder",
+        "/path/to/runtime/cgs_test/arithmetic"
+      ],
+      "path_prepend": [],
+      "required_files": [
+        "/path/to/runtime/cgs_test/hac_gridencoder/_gridencoder.so",
+        "/path/to/runtime/cgs_test/arithmetic/arithmetic.so"
+      ],
+      "env": {"WANDB_MODE": "disabled"}
+    },
+    "hacpp_train": {
+      "python": "/path/to/conda/envs/cgs_test/bin/python",
+      "pythonpath": [
+        "/path/to/runtime/cgs_test/hacpp_gridencoder",
+        "/path/to/runtime/cgs_test/arithmetic"
+      ],
+      "path_prepend": ["/path/to/runtime/bin"],
+      "required_files": [
+        "/path/to/runtime/cgs_test/hacpp_gridencoder/_gridencoder.so",
+        "/path/to/runtime/cgs_test/arithmetic/arithmetic.so",
+        "/path/to/runtime/bin/tmc3"
+      ],
+      "env": {"WANDB_MODE": "disabled"}
+    },
+    "codec": {
+      "python": "/path/to/conda/envs/pahc_hacpp_py112/bin/python",
+      "pythonpath": [],
+      "path_prepend": ["/path/to/runtime/bin"],
+      "required_files": ["/path/to/runtime/bin/tmc3"]
+    }
+  }
+}
