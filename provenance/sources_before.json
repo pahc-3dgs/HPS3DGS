@@ -1,0 +1,244 @@
+{
+  "pahc": {
+    "path": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911",
+    "head": "e9ebeafc1f09920e6393e757f08a1eecb4d291db",
+    "branch": "codex/our-hac-backend-20260911",
+    "status": "?? docs/HAC_BACKEND.md\n?? scripts/hac_backend.py\n?? src/hac/__init__.py\n?? src/hac/bundle.py\n?? src/hac/driver.py\n?? src/hac/evaluation.py\n?? tests/test_hac_bundle.py\n",
+    "untracked": [
+      {
+        "path": "docs/HAC_BACKEND.md",
+        "sha256": "5d3cef2c22a0f338caed27776cb852f0e250ab85b6928a226bdb35b508a92235"
+      },
+      {
+        "path": "scripts/hac_backend.py",
+        "sha256": "4b90f58ee45cea001653d044221e5d9f76733b6d145774b215207407a0676213"
+      },
+      {
+        "path": "src/hac/__init__.py",
+        "sha256": "867f8a02abab296e8f78413085323cfb04cd00b3584e80f1123eae7c9d90180a"
+      },
+      {
+        "path": "src/hac/bundle.py",
+        "sha256": "75c7cdae64df66b840f82e376d14cdfbeeeab371596656fd3ead9482be328667"
+      },
+      {
+        "path": "src/hac/driver.py",
+        "sha256": "4b46ff81d0dc90c4958e412220c386ec5ae16eafbc5a3e4329f50a0bcba27f31"
+      },
+      {
+        "path": "src/hac/evaluation.py",
+        "sha256": "926317e4a4fd8ce6120266670f70280ecc9f961e6e17d0f2316da3695a1eb634"
+      },
+      {
+        "path": "tests/test_hac_bundle.py",
+        "sha256": "618347754514ed01ae416dd274e1b03cd6b713e8676d7c83559ec425f404dc55"
+      }
+    ]
+  },
+  "segany": {
+    "path": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909",
+    "head": "669fe1987b88b940daf22f0638c1c2384403cce7",
+    "branch": "codex/geo33-ablation-20260909",
+    "status": "?? geo33.py\n?? geo33_appearance.py\n?? geo33_geometry.py\n?? geo33_storage_codec.py\n?? run_storage_ablation.py\n?? run_storage_any.py\n?? test_geo33_geometry_cpu.py\n?? test_geo33_instance_integration.py\n",
+    "untracked": [
+      {
+        "path": "geo33.py",
+        "sha256": "5d520af1fe8fdd4f7f19f912df8af31b847a75f4e80c2ca2b4eadc7517dd555e"
+      },
+      {
+        "path": "geo33_appearance.py",
+        "sha256": "53d2e8702ef9d3bb1bb3c1de8f6e53a0cfefc42de72e74896e9577c405396ca8"
+      },
+      {
+        "path": "geo33_geometry.py",
+        "sha256": "825f7a8a30a1c298beb13a3375bbd4a3f2ae2b89627fda28ed0025e3d7bde9e3"
+      },
+      {
+        "path": "geo33_storage_codec.py",
+        "sha256": "2bfa612fa9993218c78fb48e8f8d4b085e7df0c5bc5a722925f301ff37f20400"
+      },
+      {
+        "path": "run_storage_ablation.py",
+        "sha256": "cbc67876670476f52e52345741f2bf258dccee0a3c8ac473bdec91026520151a"
+      },
+      {
+        "path": "run_storage_any.py",
+        "sha256": "dba1db82a3b7afd4f89ce1ebdc409e6b025576f1f0cc6fdce127b41715bd19ff"
+      },
+      {
+        "path": "test_geo33_geometry_cpu.py",
+        "sha256": "a5533746d1dbb51a2961eb48fa023e12138bad45c4021d28d859a7e91042f5a2"
+      },
+      {
+        "path": "test_geo33_instance_integration.py",
+        "sha256": "f4b70430066c9bf3fda30dcbd8dec5943847dffa38167e6337d53662cfe8c9d6"
+      }
+    ]
+  },
+  "fig7": {
+    "path": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-independent-20260911",
+    "head": "669fe1987b88b940daf22f0638c1c2384403cce7",
+    "branch": "codex/fig7-taur-independent-20260911",
+    "status": "?? fig7_packet.py\n?? fig7_taur.py\n?? finalize_fig7_packets.py\n?? geo33.py\n?? geo33_appearance.py\n?? geo33_geometry.py\n?? geo33_storage_codec.py\n?? run_independent_lane.py\n",
+    "untracked": [
+      {
+        "path": "fig7_packet.py",
+        "sha256": "9a0d03e1fe5db2eb2283d5a34d29dcec88a7b4ecca298f22251257ca712046f8"
+      },
+      {
+        "path": "fig7_taur.py",
+        "sha256": "aa5253d9550d26d70b6c81739b791585b71f449d7f1c512270c38140ffe0308a"
+      },
+      {
+        "path": "finalize_fig7_packets.py",
+        "sha256": "81d750803966a752ca7dffabc0f03fbac47cae19692abb6c4aeeace83137aaaa"
+      },
+      {
+        "path": "geo33.py",
+        "sha256": "5d520af1fe8fdd4f7f19f912df8af31b847a75f4e80c2ca2b4eadc7517dd555e"
+      },
+      {
+        "path": "geo33_appearance.py",
+        "sha256": "53d2e8702ef9d3bb1bb3c1de8f6e53a0cfefc42de72e74896e9577c405396ca8"
+      },
+      {
+        "path": "geo33_geometry.py",
+        "sha256": "825f7a8a30a1c298beb13a3375bbd4a3f2ae2b89627fda28ed0025e3d7bde9e3"
+      },
+      {
+        "path": "geo33_storage_codec.py",
+        "sha256": "2bfa612fa9993218c78fb48e8f8d4b085e7df0c5bc5a722925f301ff37f20400"
+      },
+      {
+        "path": "run_independent_lane.py",
+        "sha256": "0048a84179086a740fb1a638ad2077812defa9cbb7b37b5d1b271282911cf0c4"
+      }
+    ]
+  },
+  "fig7_diagnostics": {
+    "path": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910",
+    "head": "669fe1987b88b940daf22f0638c1c2384403cce7",
+    "branch": "codex/fig7-taur-20260910",
+    "status": "?? after_fig7_lane.py\n?? audit_fig7_quantization.py\n?? collect_evidence_fig7.py\n?? collect_final_fig7.py\n?? diagnose_fig7_virtual.py\n?? fig7_packet.py\n?? fig7_taur.py\n?? finalize_fig7_packets.py\n?? geo33.py\n?? geo33_appearance.py\n?? geo33_geometry.py\n?? geo33_storage_codec.py\n?? launch_fig7_queues.py\n?? launch_sweep.py\n?? queue_final_fig7.py\n?? run_fig7_point.py\n?? run_final_fig7.py\n?? run_prepare.py\n?? run_storage_ablation.py\n?? run_storage_any.py\n?? run_sweep.py\n?? test_canonical_fig7.py\n?? test_fig7_packet.py\n?? test_geo33_geometry_cpu.py\n?? test_geo33_instance_integration.py\n?? verify_fig7_transform_precision.py\n",
+    "untracked": [
+      {
+        "path": "after_fig7_lane.py",
+        "sha256": "41ee56f68c9dabaa3e9b788c60943b0f363e5808c7303df502097e30c55db33b"
+      },
+      {
+        "path": "audit_fig7_quantization.py",
+        "sha256": "e09b72bb23bf37658bb376c46ea16d18f14282db745b6980b26f829f4d09bf3d"
+      },
+      {
+        "path": "collect_evidence_fig7.py",
+        "sha256": "5ead10f97f415e6e63a025a411c3b212682f91bf054c2ade4703150201626555"
+      },
+      {
+        "path": "collect_final_fig7.py",
+        "sha256": "38dcc026c2e13e0d502fc5f707e75c2ae198f6555a977e8b089e748ee9386d9f"
+      },
+      {
+        "path": "diagnose_fig7_virtual.py",
+        "sha256": "1fc02e2d37880cacbb4cfdd2daa426382f8bfe08f78f9a75c970c5bc80467038"
+      },
+      {
+        "path": "fig7_packet.py",
+        "sha256": "9a0d03e1fe5db2eb2283d5a34d29dcec88a7b4ecca298f22251257ca712046f8"
+      },
+      {
+        "path": "fig7_taur.py",
+        "sha256": "2e45de45732d8f883935fe0d8a740a67d2fb1e923361f702778b6abeab0a3974"
+      },
+      {
+        "path": "finalize_fig7_packets.py",
+        "sha256": "c6bd6a9c6181167e31aa3721116198bcdc0d30cd0117d3e7fe475ce5e3935b8e"
+      },
+      {
+        "path": "geo33.py",
+        "sha256": "5d520af1fe8fdd4f7f19f912df8af31b847a75f4e80c2ca2b4eadc7517dd555e"
+      },
+      {
+        "path": "geo33_appearance.py",
+        "sha256": "53d2e8702ef9d3bb1bb3c1de8f6e53a0cfefc42de72e74896e9577c405396ca8"
+      },
+      {
+        "path": "geo33_geometry.py",
+        "sha256": "825f7a8a30a1c298beb13a3375bbd4a3f2ae2b89627fda28ed0025e3d7bde9e3"
+      },
+      {
+        "path": "geo33_storage_codec.py",
+        "sha256": "2bfa612fa9993218c78fb48e8f8d4b085e7df0c5bc5a722925f301ff37f20400"
+      },
+      {
+        "path": "launch_fig7_queues.py",
+        "sha256": "23b5a61ee61163068340dd35349dd33ad402aaead15c5c198e934691c7c5d5cc"
+      },
+      {
+        "path": "launch_sweep.py",
+        "sha256": "8d69f71a929c64d5aaa8c888708a12d477a02b49d1f0ee67d38d55f4bf82684f"
+      },
+      {
+        "path": "queue_final_fig7.py",
+        "sha256": "f5318efa7ce1ebb6bdd987308c04608b21e06d87051953714033ed7b625076ca"
+      },
+      {
+        "path": "run_fig7_point.py",
+        "sha256": "11703bcea0161328416d572b8cdffe968e48fe2c0315d781e919be9063b82c3e"
+      },
+      {
+        "path": "run_final_fig7.py",
+        "sha256": "6e3789a6c48f716900736cdf53fafc69d93d7bee201cfe04a0441b2bf6d348df"
+      },
+      {
+        "path": "run_prepare.py",
+        "sha256": "a75b7e6d37b9cc269b9e7d508dd3f1aac75c2ac6768027f8ab86af6e06e76832"
+      },
+      {
+        "path": "run_storage_ablation.py",
+        "sha256": "cbc67876670476f52e52345741f2bf258dccee0a3c8ac473bdec91026520151a"
+      },
+      {
+        "path": "run_storage_any.py",
+        "sha256": "dba1db82a3b7afd4f89ce1ebdc409e6b025576f1f0cc6fdce127b41715bd19ff"
+      },
+      {
+        "path": "run_sweep.py",
+        "sha256": "8db9f2f0427631384c836aa8352505972f661f179cb84fa833f12ccaf9114bd3"
+      },
+      {
+        "path": "test_canonical_fig7.py",
+        "sha256": "9c3f825cc90aacdf7b96d0e723f2f06597034ded2f4c5ae29ec2a61230870352"
+      },
+      {
+        "path": "test_fig7_packet.py",
+        "sha256": "d56018744759d2a3b153feed0f37135b44591fe8c59b71048be73345ece744fb"
+      },
+      {
+        "path": "test_geo33_geometry_cpu.py",
+        "sha256": "a5533746d1dbb51a2961eb48fa023e12138bad45c4021d28d859a7e91042f5a2"
+      },
+      {
+        "path": "test_geo33_instance_integration.py",
+        "sha256": "f4b70430066c9bf3fda30dcbd8dec5943847dffa38167e6337d53662cfe8c9d6"
+      },
+      {
+        "path": "verify_fig7_transform_precision.py",
+        "sha256": "86136800a055ebf733b576348af93ca616c7b10c9e0d52b696e4e7a36c7be98f"
+      }
+    ]
+  },
+  "hac": {
+    "path": "/disk3/ydz/code-worktrees/HAC/our-hac-backend-20260911",
+    "head": "dfc2821bc04ac5c4d1d6b9b5b4fba52b94cd958b",
+    "branch": "codex/our-hac-backend-20260911",
+    "status": " M scene/__init__.py\n M scene/dataset_readers.py\n M train.py\n",
+    "untracked": []
+  },
+  "hacpp": {
+    "path": "/disk3/ydz/code-worktrees/HAC-plus/pahc-hacpp-rd-20260910",
+    "head": "36088aa43d00b62d479c4b99ca3f7f174cef7ec7",
+    "branch": "codex/pahc-hacpp-rd-20260910",
+    "status": "",
+    "untracked": []
+  }
+}
