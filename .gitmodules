@@ -1,3 +1,9 @@
 [submodule "third_party/SegAnyGAussians"]
 	path = third_party/SegAnyGAussians
-	url = https://github.com/Jumpat/SegAnyGAussians.git
+	url = /disk3/ydz/code/HPS3DGS-repositories/SegAnyGAussians.git
+[submodule "third_party/HAC"]
+	path = third_party/HAC
+	url = /disk3/ydz/code/HPS3DGS-repositories/HAC.git
+[submodule "third_party/HAC-plus"]
+	path = third_party/HAC-plus
+	url = /disk3/ydz/code/HPS3DGS-repositories/HAC-plus.git

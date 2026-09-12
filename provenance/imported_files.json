@@ -1,0 +1,180 @@
+{
+  "pahc": [
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/docs/HAC_BACKEND.md",
+      "path": "docs/HAC_BACKEND.md",
+      "sha256": "5d3cef2c22a0f338caed27776cb852f0e250ab85b6928a226bdb35b508a92235",
+      "bytes": 3774
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/scripts/hac_backend.py",
+      "path": "scripts/hac_backend.py",
+      "sha256": "4b90f58ee45cea001653d044221e5d9f76733b6d145774b215207407a0676213",
+      "bytes": 2874
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/src/hac/__init__.py",
+      "path": "src/hac/__init__.py",
+      "sha256": "867f8a02abab296e8f78413085323cfb04cd00b3584e80f1123eae7c9d90180a",
+      "bytes": 72
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/src/hac/bundle.py",
+      "path": "src/hac/bundle.py",
+      "sha256": "75c7cdae64df66b840f82e376d14cdfbeeeab371596656fd3ead9482be328667",
+      "bytes": 6749
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/src/hac/driver.py",
+      "path": "src/hac/driver.py",
+      "sha256": "4b46ff81d0dc90c4958e412220c386ec5ae16eafbc5a3e4329f50a0bcba27f31",
+      "bytes": 8635
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/src/hac/evaluation.py",
+      "path": "src/hac/evaluation.py",
+      "sha256": "926317e4a4fd8ce6120266670f70280ecc9f961e6e17d0f2316da3695a1eb634",
+      "bytes": 8729
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/pahc3dgs/our-hac-backend-20260911/tests/test_hac_bundle.py",
+      "path": "tests/test_hac_bundle.py",
+      "sha256": "618347754514ed01ae416dd274e1b03cd6b713e8676d7c83559ec425f404dc55",
+      "bytes": 2865
+    }
+  ],
+  "geo33": [
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/geo33.py",
+      "path": "geo33.py",
+      "sha256": "5d520af1fe8fdd4f7f19f912df8af31b847a75f4e80c2ca2b4eadc7517dd555e",
+      "bytes": 19166
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/geo33_appearance.py",
+      "path": "geo33_appearance.py",
+      "sha256": "53d2e8702ef9d3bb1bb3c1de8f6e53a0cfefc42de72e74896e9577c405396ca8",
+      "bytes": 35621
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/geo33_geometry.py",
+      "path": "geo33_geometry.py",
+      "sha256": "825f7a8a30a1c298beb13a3375bbd4a3f2ae2b89627fda28ed0025e3d7bde9e3",
+      "bytes": 25892
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/geo33_storage_codec.py",
+      "path": "geo33_storage_codec.py",
+      "sha256": "2bfa612fa9993218c78fb48e8f8d4b085e7df0c5bc5a722925f301ff37f20400",
+      "bytes": 20248
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/run_storage_ablation.py",
+      "path": "run_storage_ablation.py",
+      "sha256": "cbc67876670476f52e52345741f2bf258dccee0a3c8ac473bdec91026520151a",
+      "bytes": 7180
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/run_storage_any.py",
+      "path": "run_storage_any.py",
+      "sha256": "dba1db82a3b7afd4f89ce1ebdc409e6b025576f1f0cc6fdce127b41715bd19ff",
+      "bytes": 5143
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/test_geo33_geometry_cpu.py",
+      "path": "test_geo33_geometry_cpu.py",
+      "sha256": "a5533746d1dbb51a2961eb48fa023e12138bad45c4021d28d859a7e91042f5a2",
+      "bytes": 8057
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/geo33-ablation-20260909/test_geo33_instance_integration.py",
+      "path": "test_geo33_instance_integration.py",
+      "sha256": "f4b70430066c9bf3fda30dcbd8dec5943847dffa38167e6337d53662cfe8c9d6",
+      "bytes": 15653
+    }
+  ],
+  "fig7": [
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-independent-20260911/fig7_taur.py",
+      "path": "fig7_taur.py",
+      "sha256": "aa5253d9550d26d70b6c81739b791585b71f449d7f1c512270c38140ffe0308a",
+      "bytes": 9577
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-independent-20260911/fig7_packet.py",
+      "path": "fig7_packet.py",
+      "sha256": "9a0d03e1fe5db2eb2283d5a34d29dcec88a7b4ecca298f22251257ca712046f8",
+      "bytes": 3526
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-independent-20260911/finalize_fig7_packets.py",
+      "path": "finalize_fig7_packets.py",
+      "sha256": "81d750803966a752ca7dffabc0f03fbac47cae19692abb6c4aeeace83137aaaa",
+      "bytes": 4641
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-independent-20260911/run_independent_lane.py",
+      "path": "run_independent_lane.py",
+      "sha256": "0048a84179086a740fb1a638ad2077812defa9cbb7b37b5d1b271282911cf0c4",
+      "bytes": 3469
+    }
+  ],
+  "fig7_diagnostics": [
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/test_fig7_packet.py",
+      "path": "test_fig7_packet.py",
+      "sha256": "d56018744759d2a3b153feed0f37135b44591fe8c59b71048be73345ece744fb",
+      "bytes": 1359
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/test_canonical_fig7.py",
+      "path": "test_canonical_fig7.py",
+      "sha256": "9c3f825cc90aacdf7b96d0e723f2f06597034ded2f4c5ae29ec2a61230870352",
+      "bytes": 857
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/audit_fig7_quantization.py",
+      "path": "audit_fig7_quantization.py",
+      "sha256": "e09b72bb23bf37658bb376c46ea16d18f14282db745b6980b26f829f4d09bf3d",
+      "bytes": 1578
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/verify_fig7_transform_precision.py",
+      "path": "verify_fig7_transform_precision.py",
+      "sha256": "86136800a055ebf733b576348af93ca616c7b10c9e0d52b696e4e7a36c7be98f",
+      "bytes": 3513
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/diagnose_fig7_virtual.py",
+      "path": "diagnose_fig7_virtual.py",
+      "sha256": "1fc02e2d37880cacbb4cfdd2daa426382f8bfe08f78f9a75c970c5bc80467038",
+      "bytes": 2639
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/SegAnyGAussians/fig7-taur-20260910/run_prepare.py",
+      "path": "run_prepare.py",
+      "sha256": "a75b7e6d37b9cc269b9e7d508dd3f1aac75c2ac6768027f8ab86af6e06e76832",
+      "bytes": 1566
+    }
+  ],
+  "hac": [
+    {
+      "source": "/disk3/ydz/code-worktrees/HAC/our-hac-backend-20260911/scene/__init__.py",
+      "path": "scene/__init__.py",
+      "sha256": "adacb85628fa6ae0ea00344147ede148f8dd0d4558b333113cd05dca7013362a",
+      "bytes": 6121
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/HAC/our-hac-backend-20260911/scene/dataset_readers.py",
+      "path": "scene/dataset_readers.py",
+      "sha256": "0e5314faede81a2f16ed03f7cfd95fb9a7fc7e346ff042389074f0b8177e40f5",
+      "bytes": 18431
+    },
+    {
+      "source": "/disk3/ydz/code-worktrees/HAC/our-hac-backend-20260911/train.py",
+      "path": "train.py",
+      "sha256": "7ff7870cd6e1f0f8eb667c0210307aed289c3d095780493f02cd399943312a44",
+      "bytes": 34197
+    }
+  ]
+}

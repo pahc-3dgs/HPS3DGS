@@ -1,0 +1,38 @@
+{
+  "mirrors_root": "/disk3/ydz/code/HPS3DGS-repositories",
+  "components": {
+    "SegAnyGAussians": {
+      "path": "third_party/SegAnyGAussians",
+      "head": "f9047493a785b07b079ad4bf1fbc8358ea8c609d",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/SegAnyGAussians.git"
+    },
+    "HAC": {
+      "path": "third_party/HAC",
+      "head": "e01be4a9b30564f487dd903d0e9f08910b5d0064",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/HAC.git"
+    },
+    "HAC-plus": {
+      "path": "third_party/HAC-plus",
+      "head": "36088aa43d00b62d479c4b99ca3f7f174cef7ec7",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/HAC-plus.git"
+    }
+  },
+  "nested": {
+    "third_party/kmeans_pytorch": {
+      "source": "/disk3/ydz/code/SegAnyGAussians/third_party/kmeans_pytorch",
+      "head": "f7f36bd1cb4e3a761d73d584866d0a9c6b4d2805",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/kmeans_pytorch.git"
+    },
+    "third_party/segment-anything": {
+      "source": "/disk3/ydz/code/SegAnyGAussians/third_party/segment-anything",
+      "head": "6fdee8f2727f4506cfbbe553e23b895e27956588",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/segment-anything.git"
+    },
+    "CLIP-ViT-B-16-laion2B-s34B-b88K": {
+      "source": "/disk3/ydz/code/SegAnyGAussians/CLIP-ViT-B-16-laion2B-s34B-b88K",
+      "head": "7288da5a0d6f0b51c4a2b27c624837a9236d0112",
+      "mirror": "/disk3/ydz/code/HPS3DGS-repositories/clip-vit-b16.git"
+    }
+  },
+  "source_snapshot_root": "/disk3/ydz/experiments/hps3dgs_integration_20260912/source_snapshots"
+}
